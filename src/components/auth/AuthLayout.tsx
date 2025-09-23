@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Box, Stack, Typography } from "@mui/material";
-import { Logo } from "@/components/core/logo";
+import { Logo } from "../core/logo";
 
 interface AuthLayoutProps {
     children: React.ReactNode;

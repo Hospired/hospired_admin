@@ -17,7 +17,7 @@ import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { Controller, useForm } from "react-hook-form";
 import { z as zod } from "zod";
 
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/src/lib/supabaseClient";
 
 const schema = zod.object({
     email: zod.string().min(1, { message: "El correo es requerido" }).email(),

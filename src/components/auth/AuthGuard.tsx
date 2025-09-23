@@ -3,19 +3,19 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
-import { useUser } from "@/hooks/use-user";
+import { useUser } from "@/src/hooks/use-user";
 
-interface GuestGuardProps {
+interface AuthGuardProps {
     children: React.ReactNode;
-}
+    }
 
-export function GuestGuard({ children }: GuestGuardProps) {
+    export function AuthGuard({ children }: AuthGuardProps) {
     const router = useRouter();
     const { user, error, isLoading } = useUser();
 
     React.useEffect(() => {
-        if (!isLoading && user) {
-        router.replace("/dashboard");
+        if (!isLoading && !user) {
+        router.replace("/auth/sign-in");
         }
     }, [isLoading, user, router]);
 
@@ -23,7 +23,7 @@ export function GuestGuard({ children }: GuestGuardProps) {
 
     if (error) return <Alert severity="error">{error}</Alert>;
 
-    if (user) return null;
+    if (!user) return null;
 
     return <>{children}</>;
 }

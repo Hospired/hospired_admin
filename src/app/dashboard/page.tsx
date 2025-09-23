@@ -1,5 +1,6 @@
-import { Button } from "@/components/ui/button"
-import { AuthGuard } from "@/components/auth/AuthGuard";
+import { Button } from "@/src/components/ui/button";
+import { AuthGuard } from "@/src/components/auth/AuthGuard";
+
 
 export default function DashboardPage() {
     return (
