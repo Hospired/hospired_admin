@@ -1,12 +1,15 @@
 "use client";
 
+import { GuestGuard } from "@/components/auth/GuestGuard";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignInForm } from "@/components/auth/SignInForm";
 
-export default function SignInPage() {
+export default function Page() {
   return (
-    <AuthLayout>
-      <SignInForm />
-    </AuthLayout>
+    <GuestGuard>
+      <AuthLayout>
+        <SignInForm />
+      </AuthLayout>
+    </GuestGuard>
   );
 }
