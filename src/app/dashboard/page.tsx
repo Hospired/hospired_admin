@@ -1,14 +1,8 @@
-import { Button } from "@/src/components/ui/button";
-"use client";
-import { AuthGuard } from "@/src/components/auth/AuthGuard";
-import DashboardButtons from "@/src/components/dashboard/DashboardButtons";
-
-export default function DashboardPage() {
+export default function DashboardHome() {
     return (
-        <AuthGuard>
-        <h1>Bienvenido al Dashboard</h1>
-        <DashboardButtons />
-        </AuthGuard>
+        <div>
+        <h2 className="text-2xl font-bold mb-4">Bienvenido al Panel de Administración</h2>
+        <p className="text-gray-600">Selecciona una opción en el menú para empezar.</p>
+        </div>
     );
 }
-
