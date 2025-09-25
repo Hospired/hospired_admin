@@ -1,21 +1,34 @@
+// src/components/core/logo.tsx
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 
 interface LogoProps {
-    width?: number;
+    color?: "light" | "dark";
     height?: number;
-    }
+    width?: number;
+}
 
-    export function Logo({ width = 122, height = 32 }: LogoProps) {
+export function Logo({ color = "light", height = 32, width = 122 }: LogoProps) {
+    const fill = color === "light" ? "#fff" : "#000";
     return (
-        <Image
-        src="/logo.svg"
-        alt="Logo"
+        <svg
         width={width}
         height={height}
-        priority
-        />
+        viewBox="0 0 122 32"
+        xmlns="http://www.w3.org/2000/svg"
+        >
+        <rect width="100%" height="100%" fill={fill} rx="4" />
+        <text
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dy=".35em"
+            fontSize="14"
+            fill={color === "light" ? "#000" : "#fff"}
+        >
+            LOGO
+        </text>
+        </svg>
     );
 }
