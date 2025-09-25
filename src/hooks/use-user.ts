@@ -1,13 +1,12 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/src/lib/supabaseClient";
+import { User } from "@supabase/supabase-js";
 
 interface UseUserReturn {
     user: User | null;
     isLoading: boolean;
     error: string | null;
+    checkSession?: () => Promise<void>;
     }
 
     export function useUser(): UseUserReturn {
@@ -15,25 +14,15 @@ interface UseUserReturn {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const checkSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) setError(error.message);
+        else setUser(data.session?.user ?? null);
+    };
+
     useEffect(() => {
-        const getUser = async () => {
-        try {
-            const { data, error } = await supabase.auth.getSession();
-            if (error) {
-            setError(error.message);
-            } else {
-            setUser(data.session?.user ?? null);
-            }
-        } catch (err) {
-            setError("Error checking session");
-        } finally {
-            setIsLoading(false);
-        }
-        };
+        checkSession().finally(() => setIsLoading(false));
 
-        getUser();
-
-        // Listener para cambios en auth
         const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
         });
@@ -43,5 +32,5 @@ interface UseUserReturn {
         };
     }, []);
 
-    return { user, isLoading, error };
+    return { user, isLoading, error, checkSession };
 }
