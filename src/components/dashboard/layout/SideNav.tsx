@@ -13,11 +13,11 @@ import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 
-import { navItems } from "./layout/config";
-import { navIcons } from "./layout/nav-icons";
+import { navItems } from "./config";
+import { navIcons } from "./nav-icons";
 import { isNavItemActive } from "@/src/lib/is-nav-item-active";
 import { NavItemConfig } from "@/types/nav";
-import { Logo } from "../core/logo";
+import { Logo } from "../../core/logo";
 
 interface SideNavProps {
     openMobile?: boolean;
