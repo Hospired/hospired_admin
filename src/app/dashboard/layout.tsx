@@ -8,6 +8,7 @@ import GlobalStyles from '@mui/material/GlobalStyles';
 import { AuthGuard } from '@/src/components/auth/AuthGuard';
 import { SideNav } from '@/src/components/dashboard/layout/SideNav';
 import { MainNav } from '@/src/components/dashboard/layout/MainNav';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -18,19 +19,6 @@ export default function DashboardLayout({ children }: LayoutProps): React.JSX.El
 
     return (
     <AuthGuard>
-      {/* Global CSS Variables */}
-        <GlobalStyles
-            styles={{
-            body: {
-                '--MainNav-height': '64px',
-                '--MainNav-zIndex': 1200,
-                '--SideNav-width': '280px',
-                '--SideNav-zIndex': 1100,
-                '--MobileNav-width': '320px',
-                '--MobileNav-zIndex': 1300,
-            },
-            }}
-        />
 
         <Box
             sx={{
@@ -56,9 +44,12 @@ export default function DashboardLayout({ children }: LayoutProps): React.JSX.El
 
             {/* Page content */}
             <main>
-                <Container maxWidth="xl" sx={{ py: '80px' }}>
-                {children}
-                </Container>
+                <TooltipProvider delayDuration={300}>
+                    <Container maxWidth="xl" sx={{ py: '80px' }}>
+                        {children}
+                    </Container>
+                </TooltipProvider>
+
             </main>
             </Box>
         </Box>

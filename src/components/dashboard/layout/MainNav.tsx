@@ -1,4 +1,5 @@
 // src/components/dashboard/layout/MainNav.tsx
+// src/components/dashboard/layout/MainNav.tsx
 'use client';
 
 import * as React from 'react';
@@ -11,72 +12,67 @@ import Tooltip from '@mui/material/Tooltip';
 import { BellIcon, ListIcon, MagnifyingGlassIcon, UsersIcon } from '@phosphor-icons/react';
 
 import { usePopover } from '@/src/hooks/use-propover';
-import { MobileNav } from './movileNav';
 import { UserPopover } from './userPopover';
 
-export function MainNav(): React.JSX.Element {
-    const [openMobileNav, setOpenMobileNav] = React.useState(false);
+interface MainNavProps {
+    onMobileNavOpen?: () => void;
+}
 
+export function MainNav({ onMobileNavOpen }: MainNavProps): React.JSX.Element {
     const userPopover = usePopover<HTMLDivElement>();
 
     return (
-        <React.Fragment>
         <Box
-            component="header"
-            sx={{
+        component="header"
+        sx={{
             borderBottom: '1px solid var(--mui-palette-divider)',
             backgroundColor: 'var(--mui-palette-background-paper)',
             position: 'sticky',
             top: 0,
             zIndex: 'var(--MainNav-zIndex)',
-            }}
+        }}
         >
-            <Stack
+        <Stack
             direction="row"
             spacing={2}
             sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
-            >
-            {/* Left section: Mobile menu and search */}
+        >
+            {/* Left section */}
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <IconButton
-                onClick={() => setOpenMobileNav(true)}
-                sx={{ display: { lg: 'none' } }}
-                >
+            <IconButton onClick={onMobileNavOpen} sx={{ display: { lg: 'none' } }}>
                 <ListIcon />
-                </IconButton>
-
-                <Tooltip title="Buscar">
+            </IconButton>
+            <Tooltip title="Buscar">
                 <IconButton>
-                    <MagnifyingGlassIcon />
+                <MagnifyingGlassIcon />
                 </IconButton>
-                </Tooltip>
+            </Tooltip>
             </Stack>
 
-            {/* Right section: Contacts, notifications, user */}
+            {/* Right section */}
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                <Tooltip title="Contactos">
+            <Tooltip title="Contactos">
                 <IconButton>
-                    <UsersIcon />
+                <UsersIcon />
                 </IconButton>
-                </Tooltip>
+            </Tooltip>
 
-                <Tooltip title="Notificaciones">
+            <Tooltip title="Notificaciones">
                 <Badge badgeContent={4} color="success" variant="dot">
-                    <IconButton>
+                <IconButton>
                     <BellIcon />
-                    </IconButton>
+                </IconButton>
                 </Badge>
-                </Tooltip>
+            </Tooltip>
 
-                <Avatar
+            <Avatar
                 src="/assets/avatar.png"
                 onClick={userPopover.handleOpen}
                 ref={userPopover.anchorRef}
                 sx={{ cursor: 'pointer' }}
-                />
+            />
             </Stack>
-            </Stack>
-        </Box>
+        </Stack>
 
         {/* User popover */}
         <UserPopover
@@ -84,12 +80,6 @@ export function MainNav(): React.JSX.Element {
             open={userPopover.open}
             onClose={userPopover.handleClose}
         />
-
-        {/* Mobile navigation drawer */}
-        <MobileNav
-            open={openMobileNav}
-            onClose={() => setOpenMobileNav(false)}
-        />
-        </React.Fragment>
+        </Box>
     );
 }
