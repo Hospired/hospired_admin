@@ -1,5 +1,4 @@
 import { CardSumary } from "@/src/components/CardSumary";
-import { Button } from "@/src/components/ui/button";
 import { ToothIcon } from "@phosphor-icons/react";
 import { BookOpenCheck, Icon, UserRound, Waypoints } from "lucide-react";
 
@@ -40,7 +39,7 @@ export default function DashboardHome() {
             <div>
                 <h2 className="text-2xl mb-4">Dasboard</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-x-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-x-20">
                 {dataCardsSumary.map(({ icon, total, awerage, title, tooltipText}) => (
                     <CardSumary 
                         key = {title}
@@ -53,7 +52,6 @@ export default function DashboardHome() {
                 ))}
             </div>
         </div>
-
     );
 }
 0

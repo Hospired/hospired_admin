@@ -1,5 +1,5 @@
 // src/app/dashboard/layout.tsx
-'use client';
+/*'use client';
 
 import * as React from 'react';
 import Box from '@mui/material/Box';
@@ -27,10 +27,10 @@ export default function DashboardLayout({ children }: LayoutProps): React.JSX.El
             bgcolor: 'background.default',
             }}
         >
-            {/* Side Navigation */}
+            { Side Navigation }
             <SideNav openMobile={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
 
-            {/* Main content */}
+            { Main content }
             <Box
             sx={{
                 display: 'flex',
@@ -39,10 +39,10 @@ export default function DashboardLayout({ children }: LayoutProps): React.JSX.El
                 pl: { lg: 'var(--SideNav-width)' },
             }}
             >
-            {/* Top Navigation */}
+            { Top Navigation }
             <MainNav onMobileNavOpen={() => setMobileNavOpen(true)} />
 
-            {/* Page content */}
+            { Page content }
             <main>
                 <TooltipProvider delayDuration={300}>
                     <Container maxWidth="xl" sx={{ py: '80px' }}>
@@ -55,4 +55,28 @@ export default function DashboardLayout({ children }: LayoutProps): React.JSX.El
         </Box>
         </AuthGuard>
     );
+}*/
+
+import { AuthGuard } from "@/src/components/auth/AuthGuard"
+import { Navbar } from "@/src/components/dashboard/Navbar/Navbar"
+import { TooltipProvider } from "@radix-ui/react-tooltip"
+
+export default function DashboardLayout({children} : {children: React.ReactElement}){
+    return(
+        <AuthGuard>
+            <TooltipProvider>
+                <div className="flex w-full h-full">
+                    <div className="hidden xl:block w-80 h-full xl:fixed">
+                        Sidebar
+                    </div>
+                    <div className="w-full xl:ml-80">
+                        <Navbar />
+                        <div className="p-6 bg-[#fafbfc] dark:bg-secondary">
+                            {children}
+                        </div>
+                    </div>
+                </div>
+            </TooltipProvider>
+        </AuthGuard>
+    )
 }
