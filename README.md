@@ -89,7 +89,9 @@ Antes de instalar el proyecto, asegúratse de tener intalado:
 
 1. **Clonar el repositorio**
 ```bash
-git clone [repository-url]
+
+git clone https://github.com/Hospired/hospired_admin.git
+
 cd hospired_admin
 ```
 
