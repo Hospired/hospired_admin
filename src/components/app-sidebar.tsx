@@ -42,11 +42,6 @@ const data = {
       logo: Briefcase,
       plan: "Asistente Virtual -Managua",
     },
-    {
-      name: "Clínica Sur",
-      logo: Briefcase,
-      plan: "Standard",
-    },
   ],
   navMain: [
     {
