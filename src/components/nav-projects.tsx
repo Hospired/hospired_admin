@@ -80,7 +80,7 @@ export function NavProjects({
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontal className="text-sidebar-foreground/70" />
-            <span>More</span>
+            {/*<span>More</span>*/}
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

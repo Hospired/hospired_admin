@@ -2,16 +2,19 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  Home,
+  Users,
+  Calendar,
+  Stethoscope,
+  Activity,
+  FlaskConical,
+  UserCog,
+  BarChart2,
+  Settings,
+  FilePlus,
+  ClipboardList,
+  FileText,
+  Briefcase,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -26,132 +29,184 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Jonathan Martinez",
+    email: "jonathan@example.com",
+    avatar: "/avatars/avatar-01.png",
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      name: "Hospired",
+      logo: Briefcase,
+      plan: "Asistente Virtual - Managua",
     },
     {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "Clínica Sur",
+      logo: Briefcase,
+      plan: "Standard",
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Inicio",
+      url: "/dashboard",
+      icon: Home,
       isActive: true,
+    },
+    {
+      title: "Pacientes",
+      url: "/dashboard/pacientes",
+      icon: Users,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Lista de Pacientes",
+          url: "/dashboard/pacientes",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Nuevo Paciente",
+          url: "/dashboard/pacientes/nuevo",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Citas",
+      url: "/dashboard/citas",
+      icon: Calendar,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Calendario",
+          url: "/dashboard/citas/calendario",
         },
         {
-          title: "Explorer",
-          url: "#",
+          title: "Programación",
+          url: "/dashboard/citas/programacion",
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: "Interconsultas",
+          url: "/dashboard/citas/interconsultas",
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Consultas",
+      url: "/dashboard/consultas",
+      icon: Stethoscope,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Consultas Activas",
+          url: "/dashboard/consultas",
         },
         {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "Historial de Consultas",
+          url: "/dashboard/consultas/historial",
         },
       ],
     },
     {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
+      title: "Admisiones",
+      url: "/dashboard/admisiones",
+      icon: Activity,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Nueva Admisión",
+          url: "/dashboard/admisiones/nuevo",
         },
         {
-          title: "Team",
-          url: "#",
+          title: "Listado",
+          url: "/dashboard/admisiones",
+        },
+      ],
+    },
+    {
+      title: "Exámenes",
+      url: "/dashboard/examenes",
+      icon: FlaskConical,
+      items: [
+        {
+          title: "Lista de Exámenes",
+          url: "/dashboard/examenes",
         },
         {
-          title: "Billing",
-          url: "#",
+          title: "Asignar Examen",
+          url: "/dashboard/examenes/nuevo",
+        },
+      ],
+    },
+    {
+      title: "Personal",
+      url: "/dashboard/personal",
+      icon: UserCog,
+      items: [
+        {
+          title: "Médicos",
+          url: "/dashboard/personal/medicos",
         },
         {
-          title: "Limits",
-          url: "#",
+          title: "Enfermeras",
+          url: "/dashboard/personal/enfermeras",
+        },
+        {
+          title: "Roles y Permisos",
+          url: "/dashboard/personal/roles",
+        },
+      ],
+    },
+    {
+      title: "Reportes",
+      url: "/dashboard/reportes",
+      icon: BarChart2,
+      items: [
+        {
+          title: "Reporte de Citas",
+          url: "/dashboard/reportes/citas",
+        },
+        {
+          title: "Reporte de Consultas",
+          url: "/dashboard/reportes/consultas",
+        },
+        {
+          title: "Reporte de Pacientes",
+          url: "/dashboard/reportes/pacientes",
+        },
+      ],
+    },
+    {
+      title: "Configuración",
+      url: "/dashboard/configuracion",
+      icon: Settings,
+      items: [
+        {
+          title: "Servicios",
+          url: "/dashboard/configuracion/servicios",
+        },
+        {
+          title: "Consultorios",
+          url: "/dashboard/configuracion/consultorios",
+        },
+        {
+          title: "Usuarios",
+          url: "/dashboard/configuracion/usuarios",
         },
       ],
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
+      name: "Consultorio 1",
       url: "#",
-      icon: Frame,
+      icon: ClipboardList,
     },
     {
-      name: "Sales & Marketing",
+      name: "Consultorio 2",
       url: "#",
-      icon: PieChart,
+      icon: ClipboardList,
     },
     {
-      name: "Travel",
+      name: "Emergencias",
       url: "#",
-      icon: Map,
+      icon: FilePlus,
     },
   ],
 }
@@ -159,16 +214,23 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
+      {/* Encabezado del sidebar */}
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
+
+      {/* Contenido principal */}
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/*<NavProjects projects={data.projects} />*/}
       </SidebarContent>
+
+      {/* Usuario autenticado */}
       <SidebarFooter>
         <NavUser user={data.user} />
       </SidebarFooter>
+
+      {/* Rail lateral para modo compacto */}
       <SidebarRail />
     </Sidebar>
   )

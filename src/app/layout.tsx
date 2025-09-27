@@ -25,6 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+
+        
+      </head>
       <ThemeProvider
             attribute="class"
             defaultTheme="system"
