@@ -133,58 +133,16 @@ const data = {
       title: "Personal",
       url: "/dashboard/personal",
       icon: UserCog,
-      items: [
-        {
-          title: "Médicos",
-          url: "/dashboard/personal/medicos",
-        },
-        {
-          title: "Enfermeras",
-          url: "/dashboard/personal/enfermeras",
-        },
-        {
-          title: "Roles y Permisos",
-          url: "/dashboard/personal/roles",
-        },
-      ],
     },
     {
       title: "Reportes",
       url: "/dashboard/reportes",
       icon: BarChart2,
-      items: [
-        {
-          title: "Reporte de Citas",
-          url: "/dashboard/reportes/citas",
-        },
-        {
-          title: "Reporte de Consultas",
-          url: "/dashboard/reportes/consultas",
-        },
-        {
-          title: "Reporte de Pacientes",
-          url: "/dashboard/reportes/pacientes",
-        },
-      ],
     },
     {
       title: "Configuración",
       url: "/dashboard/configuracion",
       icon: Settings,
-      items: [
-        {
-          title: "Servicios",
-          url: "/dashboard/configuracion/servicios",
-        },
-        {
-          title: "Consultorios",
-          url: "/dashboard/configuracion/consultorios",
-        },
-        {
-          title: "Usuarios",
-          url: "/dashboard/configuracion/usuarios",
-        },
-      ],
     },
   ],
   projects: [
