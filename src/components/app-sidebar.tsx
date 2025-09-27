@@ -40,7 +40,7 @@ const data = {
     {
       name: "Hospired",
       logo: Briefcase,
-      plan: "Asistente Virtual - Managua",
+      plan: "Asistente Virtual -Managua",
     },
     {
       name: "Clínica Sur",
