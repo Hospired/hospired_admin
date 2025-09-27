@@ -16,7 +16,8 @@ import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { z as zod } from "zod";
 
-import { supabase } from "@/src/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+
 
 const schema = zod.object({
     email: zod.string().min(1, { message: "El correo es requerido" }).email(),

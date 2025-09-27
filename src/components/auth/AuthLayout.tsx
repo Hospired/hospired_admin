@@ -52,24 +52,24 @@ interface AuthLayoutProps {
             p: 6,
             }}
         >
-            <Stack spacing={3} maxWidth={400} textAlign="center">
-            <Typography variant="h4" fontWeight="bold">
-                Bienvenido a{" "}
-                <Box component="span" sx={{ color: "#15b79e" }}>
-                Tu Dashboard
-                </Box>
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.8 }}>
-                Dae Seguimientos a tus citas medicas
-            </Typography>
-            <Box
-                component="img"
-                src=""
-                alt="Auth Widgets"
-                sx={{ width: "100%", maxWidth: 350, borderRadius: 2 }}
-            />
-            </Stack>
-        </Box>
+                <Stack spacing={3} maxWidth={400} textAlign="center">
+                    <Typography variant="h4" fontWeight="bold">
+                        Bienvenido a{" "}
+                        <Box component="span" sx={{ color: "#15b79e" }}>
+                        Tu Dashboard
+                        </Box>
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.8 }}>
+                        Dae Seguimientos a tus citas medicas
+                    </Typography>
+                    <Box
+                    component="img"
+                    src="/placeholder.png"
+                    alt="Auth Widgets"
+                    />
+
+                </Stack>
+            </Box>
         </Box>
     );
 }

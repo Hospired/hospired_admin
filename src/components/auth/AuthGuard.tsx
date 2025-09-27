@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
-import { useUser } from "@/src/hooks/use-user";
+import { useUser } from "@/hooks/use-user";
 
 interface AuthGuardProps {
     children: React.ReactNode;
