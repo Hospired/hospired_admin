@@ -82,7 +82,7 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
             {/* Right side */}
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                {/*Modo Toggle*/}
+                {/*Modo Toggle*/} 
                 <ModeToggle />
                 {/* Layout button 
                 <Button
