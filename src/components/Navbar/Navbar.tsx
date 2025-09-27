@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { UserMenu } from '../user-menu';
 
 import { cn } from '@/lib/utils';
+import { ModeToggle } from '../mode-toggle';
 // Types
 export interface Navbar14Props extends React.HTMLAttributes<HTMLElement> {
     searchPlaceholder?: string;
@@ -81,6 +82,8 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
             {/* Right side */}
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
+                {/*Modo Toggle*/}
+                <ModeToggle />
                 {/* Layout button 
                 <Button
                     size="icon"
