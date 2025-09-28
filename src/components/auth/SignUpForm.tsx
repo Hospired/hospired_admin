@@ -33,6 +33,7 @@ type Values = zod.infer<typeof schema>;
 
 export function SignUpForm(): React.JSX.Element {
   const [isPending, setIsPending] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
 
   const {
@@ -47,9 +48,9 @@ export function SignUpForm(): React.JSX.Element {
 
   const onSubmit = async (values: Values) => {
     setIsPending(true);
-
     try {
       await signUpUser(values.email, values.password);
+      setSubmittedEmail(values.email);
       setConfirmationEmailSent(true);
     } catch (error) {
       if (error instanceof AuthError) {
@@ -63,10 +64,20 @@ export function SignUpForm(): React.JSX.Element {
   return (
     <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
       {confirmationEmailSent ? (
-        <Alert severity="success">
-          Tu cuenta ha sido creada con éxito. Revisa tu correo para confirmar tu
-          cuenta.
-        </Alert>
+        <Stack spacing={4} textAlign="center">
+          <Alert severity="success">
+            Hemos enviado un correo a {submittedEmail}. Revisa tu correo para
+            confirmar tu cuenta.
+          </Alert>
+          <Link
+            component={RouterLink}
+            href="/auth/sign-in"
+            underline="hover"
+            variant="subtitle2"
+          >
+            Ir a inicio
+          </Link>
+        </Stack>
       ) : (
         <>
           <Stack spacing={1} textAlign="center">
