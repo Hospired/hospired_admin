@@ -6,7 +6,6 @@
 
 <h3 align="center">Hospired · Asistente Virtual</h3>
 
-
 <p align="center">
   Asistente virtual seguro y escalable para la gestión integral de citas médicas, pacientes y recursos hospitalarios.
 </p>
@@ -34,12 +33,27 @@
 
 ## Tecnologías Utilizadas
 
-- **Framework**: [Next.js](https://nextjs.org) 15 con App Router  
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) y Material UI  
-- **Styling**: Tailwind CSS v4  
-- **Icons**: [Lucide React](https://lucide.dev/)  
-- **TypeScript**: Tipado estático  
-- **Backend**: [Supabase](https://supabase.com/)  
+- **Framework**: [Next.js](https://nextjs.org) 15 con App Router
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) y Material UI
+- **Styling**: Tailwind CSS v4
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **TypeScript**: Tipado estático
+- **Backend**: [Supabase](https://supabase.com/)
+
+---
+
+## Convenciones de nomenclatura
+
+Seguimos las convenciones de nomenclatura de React y Typescript.
+
+Archivos y carpetas:
+
+- `kebab-case` para nombres de carpetas
+- `PascalCase.tsx` para nombres de archivos que contienen componentes UI.
+  - Componentes UI se guardan en archivos `tsx`.
+  - El nombre del archivo debe coincidir con el nombre del componente principal que contiene
+- `camelCase.ts` para nombres de archivos que contienen hooks o utilidades
+  - Lógica sin UI se guarda en archivos `ts`.
 
 ---
 
@@ -88,6 +102,7 @@ Antes de instalar el proyecto, asegúratse de tener intalado:
 - npm (Recomendado), pnpm, yarn o bun instalado
 
 1. **Clonar el repositorio**
+
 ```bash
 
 git clone https://github.com/Hospired/hospired_admin.git
@@ -96,11 +111,13 @@ cd hospired_admin
 ```
 
 2. **Instalar dependencias**
+
 ```bash
 npm install
 ```
 
 3. **Ejecute el servidor de desarrollo**
+
 ```bash
 npm run dev
 ```
@@ -113,12 +130,14 @@ http://localhost:3000
 ```
 
 ### Variables de Entorno
+
 Crea un archivo `.env` en la raíz del proyecto con la siguiente configuración mínima:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
+
 ⚠️ Estas claves se obtienen desde el panel de Trello.
 Si no tienes acceso, contacta al administrador del proyecto.
 
