@@ -49,6 +49,7 @@ Seguimos las convenciones de nomenclatura de React y Typescript.
 Archivos y carpetas:
 
 - `kebab-case` para nombres de carpetas
+- `page.tsx`, `layout.tsx`, `error.tsx`, etc. para archivos en el subárbol de la carpeta `app` según la convención de Next.js App Router.
 - `PascalCase.tsx` para nombres de archivos que contienen componentes UI.
   - Componentes UI se guardan en archivos `tsx`.
   - El nombre del archivo debe coincidir con el nombre del componente principal que contiene
