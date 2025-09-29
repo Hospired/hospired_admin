@@ -1,8 +1,7 @@
 "use client";
 
-import * as React from "react";
+import React, { useState } from "react";
 import RouterLink from "next/link";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -16,107 +15,160 @@ import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { z as zod } from "zod";
 
-import { supabase } from "@/lib/supabaseClient";
+import { AuthError } from "@supabase/supabase-js";
+import { signUpUser } from "@/backend-api/apiService";
 
-
-const schema = zod.object({
+const schema = zod
+  .object({
     email: zod.string().min(1, { message: "El correo es requerido" }).email(),
     password: zod.string().min(6, { message: "Mínimo 6 caracteres" }),
     confirmPassword: zod.string().min(6, { message: "Confirma tu contraseña" }),
-    }).refine((data) => data.password === data.confirmPassword, {
+  })
+  .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Las contraseñas no coinciden",
-    });
+  });
 
-    type Values = zod.infer<typeof schema>;
+type Values = zod.infer<typeof schema>;
 
-    export function SignUpForm(): React.JSX.Element {
-    const router = useRouter();
-    const [isPending, setIsPending] = React.useState(false);
+export function SignUpForm(): React.JSX.Element {
+  const [isPending, setIsPending] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
 
-    const { control, handleSubmit, setError, formState: { errors } } = useForm<Values>({
-        defaultValues: { email: "", password: "", confirmPassword: "" },
-        resolver: zodResolver(schema),
-    });
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<Values>({
+    defaultValues: { email: "", password: "", confirmPassword: "" },
+    resolver: zodResolver(schema),
+  });
 
-    const onSubmit = async (values: Values) => {
-        setIsPending(true);
-
-        const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        });
-
-        if (error) {
+  const onSubmit = async (values: Values) => {
+    setIsPending(true);
+    try {
+      await signUpUser(values.email, values.password);
+      setSubmittedEmail(values.email);
+      setConfirmationEmailSent(true);
+    } catch (error) {
+      if (error instanceof AuthError) {
         setError("root", { type: "server", message: error.message });
-        setIsPending(false);
-        return;
-        }
+      }
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-        // Opcional: enviar al login
-        router.push("/auth/sign-in");
-    };
-
-    return (
-        <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
-        <Stack spacing={1} textAlign="center">
+  return (
+    <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
+      {confirmationEmailSent ? (
+        <Stack spacing={4} textAlign="center">
+          <Alert severity="success">
+            Hemos enviado un correo a {submittedEmail}. Revisa tu correo para
+            confirmar tu cuenta.
+          </Alert>
+          <Link
+            component={RouterLink}
+            href="/auth/sign-in"
+            underline="hover"
+            variant="subtitle2"
+          >
+            Ir a inicio
+          </Link>
+        </Stack>
+      ) : (
+        <>
+          <Stack spacing={1} textAlign="center">
             <Typography variant="h4">Crear cuenta</Typography>
             <Typography color="text.secondary" variant="body2">
-            ¿Ya tienes cuenta?{" "}
-            <Link component={RouterLink} href="/auth/sign-in" underline="hover" variant="subtitle2">
+              ¿Ya tienes cuenta?{" "}
+              <Link
+                component={RouterLink}
+                href="/auth/sign-in"
+                underline="hover"
+                variant="subtitle2"
+              >
                 Inicia sesión
-            </Link>
+              </Link>
             </Typography>
-        </Stack>
+          </Stack>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>
-            <Controller
+              <Controller
                 control={control}
                 name="email"
                 render={({ field }) => (
-                <FormControl error={Boolean(errors.email)}>
+                  <FormControl error={Boolean(errors.email)}>
                     <InputLabel>Correo electrónico</InputLabel>
-                    <OutlinedInput {...field} type="email" label="Correo electrónico" />
-                    {errors.email && <FormHelperText>{errors.email.message}</FormHelperText>}
-                </FormControl>
+                    <OutlinedInput
+                      {...field}
+                      type="email"
+                      label="Correo electrónico"
+                    />
+                    {errors.email && (
+                      <FormHelperText>{errors.email.message}</FormHelperText>
+                    )}
+                  </FormControl>
                 )}
-            />
+              />
 
-            <Controller
+              <Controller
                 control={control}
                 name="password"
                 render={({ field }) => (
-                <FormControl error={Boolean(errors.password)}>
+                  <FormControl error={Boolean(errors.password)}>
                     <InputLabel>Contraseña</InputLabel>
-                    <OutlinedInput {...field} type="password" label="Contraseña" />
-                    {errors.password && <FormHelperText>{errors.password.message}</FormHelperText>}
-                </FormControl>
+                    <OutlinedInput
+                      {...field}
+                      type="password"
+                      label="Contraseña"
+                    />
+                    {errors.password && (
+                      <FormHelperText>{errors.password.message}</FormHelperText>
+                    )}
+                  </FormControl>
                 )}
-            />
+              />
 
-            <Controller
+              <Controller
                 control={control}
                 name="confirmPassword"
                 render={({ field }) => (
-                <FormControl error={Boolean(errors.confirmPassword)}>
+                  <FormControl error={Boolean(errors.confirmPassword)}>
                     <InputLabel>Confirmar contraseña</InputLabel>
-                    <OutlinedInput {...field} type="password" label="Confirmar contraseña" />
+                    <OutlinedInput
+                      {...field}
+                      type="password"
+                      label="Confirmar contraseña"
+                    />
                     {errors.confirmPassword && (
-                    <FormHelperText>{errors.confirmPassword.message}</FormHelperText>
+                      <FormHelperText>
+                        {errors.confirmPassword.message}
+                      </FormHelperText>
                     )}
-                </FormControl>
+                  </FormControl>
                 )}
-            />
+              />
 
-            {errors.root && <Alert severity="error">{errors.root.message}</Alert>}
+              {errors.root && (
+                <Alert severity="error">{errors.root.message}</Alert>
+              )}
 
-            <Button disabled={isPending} type="submit" variant="contained" fullWidth>
+              <Button
+                disabled={isPending}
+                type="submit"
+                variant="contained"
+                fullWidth
+              >
                 {isPending ? "Creando cuenta..." : "Registrarme"}
-            </Button>
+              </Button>
             </Stack>
-        </form>
-        </Stack>
-    );
-    
+          </form>
+        </>
+      )}
+    </Stack>
+  );
 }

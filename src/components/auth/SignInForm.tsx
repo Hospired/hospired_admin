@@ -16,124 +16,131 @@ import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { z as zod } from "zod";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
-import { supabase } from "@/lib/supabaseClient";
-
+import { AuthError } from "@supabase/supabase-js";
+import { signInUser } from "@/backend-api/apiService";
 
 const schema = zod.object({
-    email: zod.string().min(1, { message: "El correo es requerido" }).email(),
-    password: zod.string().min(1, { message: "La contraseña es requerida" }),
-    });
+  email: zod.string().min(1, { message: "El correo es requerido" }).email(),
+  password: zod.string().min(1, { message: "La contraseña es requerida" }),
+});
 
-    type Values = zod.infer<typeof schema>;
+type Values = zod.infer<typeof schema>;
 
-    export function SignInForm(): React.JSX.Element {
-    const router = useRouter();
+export function SignInForm(): React.JSX.Element {
+  const router = useRouter();
 
-    const [showPassword, setShowPassword] = React.useState<boolean>(false);
-    const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
+  const [isPending, setIsPending] = React.useState<boolean>(false);
 
-    const {
-        control,
-        handleSubmit,
-        setError,
-        formState: { errors },
-    } = useForm<Values>({
-        defaultValues: { email: "", password: "" },
-        resolver: zodResolver(schema),
-    });
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<Values>({
+    defaultValues: { email: "", password: "" },
+    resolver: zodResolver(schema),
+  });
 
-    const onSubmit = React.useCallback(
-        async (values: Values): Promise<void> => {
-        setIsPending(true);
-
-        const { error } = await supabase.auth.signInWithPassword({
-            email: values.email,
-            password: values.password,
-        });
-
-        if (error) {
-            setError("root", { type: "server", message: error.message });
-            setIsPending(false);
-            return;
-        }
-
+  const onSubmit = React.useCallback(
+    async (values: Values): Promise<void> => {
+      setIsPending(true);
+      try {
+        await signInUser(values.email, values.password);
         router.push("/dashboard");
-        },
-        [router, setError]
-    );
+      } catch (error) {
+        if (error instanceof AuthError) {
+          setError("root", { type: "server", message: error.message });
+        }
+      } finally {
+        setIsPending(false);
+      }
+    },
+    [router, setError],
+  );
 
-    return (
-        <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
-        <Stack spacing={1} textAlign="center">
-            <Typography variant="h4">Iniciar sesión</Typography>
-            <Typography color="text.secondary" variant="body2">
-            ¿No tienes cuenta?{" "}
-            <Link
-                component={RouterLink}
-                href="/auth/sign-up"
-                underline="hover"
-                variant="subtitle2"
-            >
-                Regístrate
-            </Link>
-            </Typography>
+  return (
+    <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
+      <Stack spacing={1} textAlign="center">
+        <Typography variant="h4">Iniciar sesión</Typography>
+        <Typography color="text.secondary" variant="body2">
+          ¿No tienes cuenta?{" "}
+          <Link
+            component={RouterLink}
+            href="/auth/sign-up"
+            underline="hover"
+            variant="subtitle2"
+          >
+            Regístrate
+          </Link>
+        </Typography>
+      </Stack>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Stack spacing={2}>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field }) => (
+              <FormControl error={Boolean(errors.email)}>
+                <InputLabel>Correo electrónico</InputLabel>
+                <OutlinedInput
+                  {...field}
+                  type="email"
+                  label="Correo electrónico"
+                />
+                {errors.email ? (
+                  <FormHelperText>{errors.email.message}</FormHelperText>
+                ) : null}
+              </FormControl>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="password"
+            render={({ field }) => (
+              <FormControl error={Boolean(errors.password)}>
+                <InputLabel>Contraseña</InputLabel>
+                <OutlinedInput
+                  {...field}
+                  type={showPassword ? "text" : "password"}
+                  endAdornment={
+                    showPassword ? (
+                      <Eye
+                        cursor="pointer"
+                        onClick={() => setShowPassword(false)}
+                      />
+                    ) : (
+                      <EyeSlash
+                        cursor="pointer"
+                        onClick={() => setShowPassword(true)}
+                      />
+                    )
+                  }
+                  label="Contraseña"
+                />
+                {errors.password ? (
+                  <FormHelperText>{errors.password.message}</FormHelperText>
+                ) : null}
+              </FormControl>
+            )}
+          />
+
+          {errors.root ? (
+            <Alert severity="error">{errors.root.message}</Alert>
+          ) : null}
+
+          <Button
+            disabled={isPending}
+            type="submit"
+            variant="contained"
+            fullWidth
+          >
+            {isPending ? "Ingresando..." : "Ingresar"}
+          </Button>
         </Stack>
-
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={2}>
-            <Controller
-                control={control}
-                name="email"
-                render={({ field }) => (
-                <FormControl error={Boolean(errors.email)}>
-                    <InputLabel>Correo electrónico</InputLabel>
-                    <OutlinedInput {...field} type="email" label="Correo electrónico" />
-                    {errors.email ? (
-                    <FormHelperText>{errors.email.message}</FormHelperText>
-                    ) : null}
-                </FormControl>
-                )}
-            />
-
-            <Controller
-                control={control}
-                name="password"
-                render={({ field }) => (
-                <FormControl error={Boolean(errors.password)}>
-                    <InputLabel>Contraseña</InputLabel>
-                    <OutlinedInput
-                    {...field}
-                    type={showPassword ? "text" : "password"}
-                    endAdornment={
-                        showPassword ? (
-                        <Eye cursor="pointer" onClick={() => setShowPassword(false)} />
-                        ) : (
-                        <EyeSlash cursor="pointer" onClick={() => setShowPassword(true)} />
-                        )
-                    }
-                    label="Contraseña"
-                    />
-                    {errors.password ? (
-                    <FormHelperText>{errors.password.message}</FormHelperText>
-                    ) : null}
-                </FormControl>
-                )}
-            />
-
-            {errors.root ? (
-                <Alert severity="error">{errors.root.message}</Alert>
-            ) : null}
-
-            <Button
-                disabled={isPending}
-                type="submit"
-                variant="contained"
-                fullWidth
-            >
-                {isPending ? "Ingresando..." : "Ingresar"}
-            </Button>
-            </Stack>
-        </form>
-        </Stack>
-    );
+      </form>
+    </Stack>
+  );
 }
