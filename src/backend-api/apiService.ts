@@ -6,7 +6,7 @@ export async function getAdminUser(id: string) {
     .from("admin_users")
     .select("*")
     .eq("id", id)
-    .single(); // expects only one row (or null)
+    .maybeSingle(); // expects only one row (or null)
 
   if (error) {
     throw new Error(`Error fetching admin user: ${error.message}`);

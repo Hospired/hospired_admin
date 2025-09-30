@@ -1,3 +1,5 @@
+"use client";
+
 import { Navbar14 } from "@/components/Navbar/Navbar";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import type React from "react";
