@@ -92,7 +92,7 @@ export default function AdminUserForm() {
       console.error(error);
       alert("Error: " + error.message);
     } else {
-      alert("Usuario creado con éxito - Bienvenido al Panel de control");
+      alert("Usuario creado con éxito - Bienvenido al Panel de administración");
       redirect("/dashboard/")
     }
   }
@@ -123,6 +123,9 @@ export default function AdminUserForm() {
           <h1 className="text-3xl font-bold text-foreground">Gestión de Usuario Administrativo</h1>
           <p className="text-muted-foreground">
             Complete la información del usuario del sistema
+          </p>
+          <p className="text-muted-foreground">
+            Este formulario es obligatorio
           </p>
         </div>
 
@@ -316,6 +319,7 @@ export default function AdminUserForm() {
             </div>
           </CardContent>
         </Card>
+        <p className="text-sm text-muted-foreground">Este formulario sera llenado solamente una vez</p>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end">
