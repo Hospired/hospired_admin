@@ -1,7 +1,18 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Activity, Calendar, Users, Stethoscope, TrendingUp, Clock } from "lucide-react"
+import { useUser } from "@/hooks/use-user"
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
+    const { isLoading, exists, userData } = useUser();
+
+  if (isLoading) return <p>Cargando...</p>;
+
+  if (!exists) return <p>Redirigiendo...</p>; // Será redirigido por el hook
+
     return (
         <div className="space-y-6">
         {/* Header */}

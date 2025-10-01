@@ -1,36 +1,132 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import { getAdminUser } from "@/backend-api/apiService";
+import { AdminUserRes } from "@/backend-api/dtos";
+import { useRouter } from "next/navigation";
 
 interface UseUserReturn {
-    user: User | null;
-    isLoading: boolean;
-    error: string | null;
-    checkSession?: () => Promise<void>;
-    }
+  user: any | null;
+  userData: AdminUserRes | null;
+  exists: boolean | null;
+  isLoading: boolean;
+  error: string | null;
+}
 
-    export function useUser(): UseUserReturn {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export function useUser(): UseUserReturn {
+  const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
+  const [userData, setUserData] = useState<AdminUserRes | null>(null);
+  const [exists, setExists] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const checkSession = async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) setError(error.message);
-        else setUser(data.session?.user ?? null);
+  // rutas que NO necesitan sesión
+  const publicRoutes = ["/auth/sign-in", "/auth/sign-up"];
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkUser = async () => {
+      try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const sessionUser = data.session?.user ?? null;
+
+        if (!sessionUser) {
+          if (mounted) {
+            setUser(null);
+            setExists(false);
+            setUserData(null);
+
+            // redirigir solo si NO estoy en ruta pública
+            if (!publicRoutes.includes(window.location.pathname)) {
+              router.push("/auth/sign-in");
+            }
+          }
+          return;
+        }
+
+        if (mounted) setUser(sessionUser);
+
+        // Buscar en admin_users
+        const adminUser = await getAdminUser(sessionUser.id);
+
+        if (mounted) {
+          if (adminUser) {
+            setExists(true);
+            setUserData(adminUser);
+          } else {
+            setExists(false);
+            setUserData(null);
+            // si ya está logueado pero no tiene perfil → mandar al setup
+            if (window.location.pathname !== "/auth/setup-user") {
+              router.push("/auth/setup-user");
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error("Error en useUser:", err);
+        if (mounted) {
+          setUser(null);
+          setExists(false);
+          setUserData(null);
+          setError(err?.message ?? "Unknown error");
+
+          if (!publicRoutes.includes(window.location.pathname)) {
+            router.push("/auth/sign-in");
+          }
+        }
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
     };
 
-    useEffect(() => {
-        checkSession().finally(() => setIsLoading(false));
+    checkUser();
 
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        });
+    // Escuchar cambios de sesión
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return;
 
-        return () => {
-        listener.subscription.unsubscribe();
-        };
-    }, []);
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
 
-    return { user, isLoading, error, checkSession };
+        if (!sessionUser) {
+          setUserData(null);
+          setExists(false);
+          if (!publicRoutes.includes(window.location.pathname)) {
+            router.push("/auth/sign-in");
+          }
+          return;
+        }
+
+        try {
+          const adminUser = await getAdminUser(sessionUser.id);
+          if (adminUser) {
+            setExists(true);
+            setUserData(adminUser);
+          } else {
+            setExists(false);
+            setUserData(null);
+            if (window.location.pathname !== "/auth/setup-user") {
+              router.push("/auth/setup-user");
+            }
+          }
+        } catch (err: any) {
+          console.error("Error al verificar adminUser:", err);
+          setError(err?.message ?? "Unknown error");
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [router]);
+
+  return { user, userData, exists, isLoading, error };
 }

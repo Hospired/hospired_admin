@@ -14,6 +14,7 @@ export type AdminUserRes = {
 };
 
 export type CreateAdminUserReq = {
+  id: string;
   first_name: string;
   second_name?: string;
   first_last_name: string;

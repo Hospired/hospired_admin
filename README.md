@@ -62,6 +62,11 @@ Archivos y carpetas:
 
 ```plaintext
 app/
+├── auth/
+│   ├── setup-user                  # Registra nuevo usuario
+│   ├── sing-in                     # Iniciar sesión
+│   ├── sign-up                     # Registrarse
+│   └── welcome-new-user            # Pagina de Bienvenida   
 ├── dashboard/
 │   ├── layout.tsx                  # Layout principal con sidebar
 │   ├── page.tsx                    # Dashboard principal
@@ -87,12 +92,25 @@ app/
 │   ├── reportes/
 │   │   └── page.tsx                # Reportes y analytics
 │   └── configuracion/
-│       └── page.tsx                 # Configuración general
+│       └── page.tsx                # Configuración general
 ├── components/
+│   ├── auth/
+│   │   ├── AuthGuard.tsx           # Proteccion de rutas privadas
+│   │   ├── AuthLayout.tsx          # Layout principal para autenticación
+│   │   ├── GuestGuard.tsx          # Proteccion de rutas publicas
+│   │   ├── SignUpForm.tsx          # Formulario de inicio de seccion
+│   │   └── SignInForm.tsx          # Formulario de registro de usuario
 │   ├── app-sidebar.tsx             # Sidebar de navegación
 │   ├── nav-main.tsx                # Navegación principal
 │   └── team-switcher.tsx           # Selector de equipo
-└── globals.css                      # Estilos globales
+├── hooks/
+│   └── use-user.ts                 # Hook - Gestion de sesión
+├── backend-api/      
+│   ├── dtos.ts                     # Objeto de Transferencia de datos
+│   └── apiService.ts               # Servicio Api para Supabase
+├── lib/
+│   └── supabaseClient.ts           # Instancia del cliente Supabase
+└── globals.css                     # Estilos globales
 ```
 
 ## Instalación y Uso
