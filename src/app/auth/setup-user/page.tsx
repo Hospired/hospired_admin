@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/mode-toggle";
-import { CalendarIcon, UserIcon, ShieldCheckIcon, StethoscopeIcon, ImageIcon, Upload } from "lucide-react";
+import { CalendarIcon, UserIcon, ShieldCheckIcon, StethoscopeIcon, ImageIcon, Upload, PhoneIcon, AwardIcon as IdCardIcon } from "lucide-react";
 import { Router } from "next/router";
 
 export default function AdminUserForm() {
@@ -243,16 +243,19 @@ export default function AdminUserForm() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldCheckIcon className="h-5 w-5 text-primary" />
-              Roles y Permisos
+              Roles
             </CardTitle>
             <CardDescription>Configure los permisos del usuario en el sistema</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Médico */}
             <div
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.is_physician ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
-              }`}
+              className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200
+                ${
+                  inputValues.is_physician
+                    ? "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700"
+                    : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700"
+                }`}
             >
               <div className="flex items-center space-x-3">
                 <div className={`p-2 rounded-full ${inputValues.is_physician ? "bg-green-100" : "bg-gray-100"}`}>
@@ -264,7 +267,9 @@ export default function AdminUserForm() {
                   <Label htmlFor="is_physician" className="text-base font-medium cursor-pointer">
                     Es Médico
                   </Label>
-                  <p className="text-sm text-muted-foreground">Usuario con credenciales médicas</p>
+                  <p className="text-sm text-muted-foreground">
+                    Usuario con credenciales médicas
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -282,44 +287,66 @@ export default function AdminUserForm() {
                 />
               </div>
             </div>
-
-            {/* Super Usuario
-            <div
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.is_super_user ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-full ${inputValues.is_super_user ? "bg-blue-100" : "bg-gray-100"}`}>
-                  <ShieldCheckIcon
-                    className={`h-5 w-5 ${inputValues.is_super_user ? "text-blue-600" : "text-gray-500"}`}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="is_super_user" className="text-base font-medium cursor-pointer">
-                    Super Usuario
-                  </Label>
-                  <p className="text-sm text-muted-foreground">Acceso completo al sistema</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span
-                  className={`text-sm font-medium ${
-                    inputValues.is_super_user ? "text-blue-600" : "text-gray-500"
-                  }`}
-                >
-                  {inputValues.is_super_user ? "Activo" : "Inactivo"}
-                </span>
-                <Switch
-                  id="is_super_user"
-                  checked={inputValues.is_super_user}
-                  onCheckedChange={(checked) => handleSwitch("is_super_user", checked)}
-                />
-              </div>
-            </div> */}
           </CardContent>
         </Card>
-        <p className="text-sm text-muted-foreground">Este formulario sera llenado solamente una vez</p>
+
+        {inputValues.is_physician && (
+            <Card className="border-2 border-emerald-300 dark:border-emerald-600 shadow-lg animate-in slide-in-from-top-4 duration-300">
+              <CardHeader className=" bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-700">
+                <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                  <StethoscopeIcon className="h-5 w-5" />
+                  Información Profesional del Médico
+                </CardTitle>
+                <CardDescription className="text-emerald-600 dark:text-emerald-400">
+                  Complete los datos profesionales y credenciales médicas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-2 pt-6 focus-ring">
+                <div className="space-y-2">
+                  <Label htmlFor="specialty" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <StethoscopeIcon className="h-4 w-4" />
+                    Especialidad *
+                  </Label>
+                  <Input
+                    id="specialty"
+                    required={inputValues.is_physician}
+                    placeholder="Cardiología, Pediatría, etc."
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="professional_id" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <IdCardIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Carnet de Identidad Profesional *
+                  </Label>
+                  <Input
+                    id="professional_id"
+                    required={inputValues.is_physician}
+                    placeholder="CIP-12345"
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <PhoneIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Teléfono *
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    required={inputValues.is_physician}
+                    placeholder="+505 5745 - 7015"
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end">
