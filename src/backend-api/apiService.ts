@@ -1,3 +1,4 @@
+import { tableRowClasses } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
 import { AdminUserRes } from "./dtos";
 
@@ -6,7 +7,7 @@ export async function getAdminUser(id: string) {
     .from("admin_users")
     .select("*")
     .eq("id", id)
-    .maybeSingle(); // expects only one row (or null)
+    .maybeSingle(); // expects only one row (or null) single create admin user
 
   if (error) {
     throw new Error(`Error fetching admin user: ${error.message}`);

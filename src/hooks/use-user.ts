@@ -14,10 +14,6 @@ interface UseUserReturn {
   error: string | null;
 }
 
-/**
- * Hook para manejar la sesión de Supabase y existencia del usuario en admin_users.
- * Mantiene tus funcionalidades avanzadas y agrega isLoading + error.
- */
 export function useUser(): UseUserReturn {
   const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
@@ -26,12 +22,14 @@ export function useUser(): UseUserReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // rutas que NO necesitan sesión
+  const publicRoutes = ["/auth/sign-in", "/auth/sign-up"];
+
   useEffect(() => {
     let mounted = true;
 
     const checkUser = async () => {
       try {
-        // Verificar sesión actual
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
@@ -42,14 +40,18 @@ export function useUser(): UseUserReturn {
             setUser(null);
             setExists(false);
             setUserData(null);
-            router.push("/auth/sign-in");
+
+            // redirigir solo si NO estoy en ruta pública
+            if (!publicRoutes.includes(window.location.pathname)) {
+              router.push("/auth/sign-in");
+            }
           }
           return;
         }
 
         if (mounted) setUser(sessionUser);
 
-        // Verificar usuario en admin_users (trae todos los datos con getAdminUser)
+        // Buscar en admin_users
         const adminUser = await getAdminUser(sessionUser.id);
 
         if (mounted) {
@@ -59,7 +61,10 @@ export function useUser(): UseUserReturn {
           } else {
             setExists(false);
             setUserData(null);
-            router.push("/auth/setup-user");
+            // si ya está logueado pero no tiene perfil → mandar al setup
+            if (window.location.pathname !== "/auth/setup-user") {
+              router.push("/auth/setup-user");
+            }
           }
         }
       } catch (err: any) {
@@ -69,7 +74,10 @@ export function useUser(): UseUserReturn {
           setExists(false);
           setUserData(null);
           setError(err?.message ?? "Unknown error");
-          router.push("/auth/sign-in");
+
+          if (!publicRoutes.includes(window.location.pathname)) {
+            router.push("/auth/sign-in");
+          }
         }
       } finally {
         if (mounted) setIsLoading(false);
@@ -78,7 +86,7 @@ export function useUser(): UseUserReturn {
 
     checkUser();
 
-    // Escuchar cambios en la sesión (login/logout)
+    // Escuchar cambios de sesión
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!mounted) return;
@@ -89,7 +97,9 @@ export function useUser(): UseUserReturn {
         if (!sessionUser) {
           setUserData(null);
           setExists(false);
-          router.push("/auth/sign-in");
+          if (!publicRoutes.includes(window.location.pathname)) {
+            router.push("/auth/sign-in");
+          }
           return;
         }
 
@@ -101,7 +111,9 @@ export function useUser(): UseUserReturn {
           } else {
             setExists(false);
             setUserData(null);
-            router.push("/auth/setup-user");
+            if (window.location.pathname !== "/auth/setup-user") {
+              router.push("/auth/setup-user");
+            }
           }
         } catch (err: any) {
           console.error("Error al verificar adminUser:", err);
