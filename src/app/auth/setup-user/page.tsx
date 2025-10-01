@@ -283,7 +283,7 @@ export default function AdminUserForm() {
               </div>
             </div>
 
-            {/* Super Usuario */}
+            {/* Super Usuario
             <div
               className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
                 inputValues.is_super_user ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
@@ -316,7 +316,7 @@ export default function AdminUserForm() {
                   onCheckedChange={(checked) => handleSwitch("is_super_user", checked)}
                 />
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
         <p className="text-sm text-muted-foreground">Este formulario sera llenado solamente una vez</p>
