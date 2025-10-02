@@ -2,6 +2,7 @@
 import { useState, ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient"; 
 import { CreateAdminUserReq } from "@/backend-api/dtos";
+import { getAuthUser, createAdminUser} from "@/backend-api/apiService";
 import { redirect } from "next/navigation";
 
 // UI Components
@@ -67,33 +68,25 @@ export default function AdminUserForm() {
   };
 
   // Insert en Supabase
-  async function onCreate() {
+async function onCreate() {
+    try {
+      const user = await getAuthUser();
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-    if (userError || !user) {
-      alert("No se pudo obtener el usuario autenticado");
-      return;
-    }
-
-    const { error } = await supabase.from("admin_users").insert([
-      {
+      const newUser: CreateAdminUserReq = {
         id: user.id,
-        
         ...inputValues,
         date_of_birth: inputValues.date_of_birth
-          ? new Date(inputValues.date_of_birth).toISOString()
-          : null,
-        avatar: avatarPreview || null,
-      },
-    ]);
+          ? new Date(inputValues.date_of_birth)
+          : undefined,
+      };
 
-    if (error) {
-      console.error(error);
-      alert("Error: " + error.message);
-    } else {
-      alert("Usuario creado con éxito - Bienvenido al Panel de administración");
-      redirect("/dashboard/")
+      await createAdminUser(newUser);
+
+      alert("Usuario creado con éxito");
+      redirect("/dashboard/");
+    } catch (err: any) {
+      console.error(err);
+      alert("Error: " + err.message);
     }
   }
 

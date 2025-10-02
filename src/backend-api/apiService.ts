@@ -1,6 +1,6 @@
 import { tableRowClasses } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
-import { AdminUserRes } from "./dtos";
+import { AdminUserRes, CreateAdminUserReq } from "./dtos";
 
 export async function getAdminUser(id: string) {
   const { data, error } = await supabase
@@ -71,4 +71,43 @@ export async function signOutUser() {
     console.error("Signout error:", error.message);
     throw error;
   }
+}
+
+export async function getAuthUser() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("No se pudo obtener el usuario autenticado");
+  }
+
+  return data.user;
+}
+
+export async function createAdminUser(req: CreateAdminUserReq) {
+
+  const newUser: CreateAdminUserReq = {
+    id: req.id,
+    first_name: req.first_name,
+    second_name: req.second_name ?? undefined,
+    first_last_name: req.first_last_name,
+    second_last_name: req.second_last_name ?? undefined,
+    is_physician: req.is_physician,
+    is_super_user: req.is_super_user,
+    date_of_birth: req.date_of_birth ? new Date(req.date_of_birth) : undefined,
+  };
+
+  const { error } = await supabase.from("admin_users").insert([
+    {
+      ...newUser,
+      date_of_birth:newUser.date_of_birth
+      ? newUser.date_of_birth.toISOString()
+      : null,
+    },
+  ])
+
+  if (error) {
+    throw new Error(`Error creando admin user: ${error.message}`);
+  }
+
+  return newUser;
 }
