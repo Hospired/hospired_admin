@@ -8,9 +8,15 @@ import SettingsMenu from "./SettingMenu";
 import { Input } from "@/components/ui/input";
 import { UserMenu } from "../user-menu";
 import { signOutUser } from "@/backend-api/apiService";
+import { AdminUserRes } from "@/backend-api/dtos";
+import { useUser } from "@/hooks/use-user";
 
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "../mode-toggle";
+
+
+
+
 
 // Types
 export interface Navbar14Props extends React.HTMLAttributes<HTMLElement> {
@@ -35,6 +41,11 @@ export interface Navbar14Props extends React.HTMLAttributes<HTMLElement> {
   onSettingsItemClick?: (item: string) => void;
 }
 
+function avatarPreviewOrPlaceholder(userData?: AdminUserRes | null) {
+  return userData?.avatar || "/placeholder.svg";
+}
+
+
 export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
   (
     {
@@ -57,6 +68,8 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
   ) => {
     const id = useId();
     const router = useRouter();
+
+    const { user, isLoading, userData } = useUser();
 
     const callSignOutUser = useCallback(async () => {
       try {
@@ -116,11 +129,18 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
               {/* Settings */}
               <SettingsMenu onItemClick={onSettingsItemClick} />
               <UserMenu
-                name="Jonathan Martinez"
-                email="jonathan@example.com"
-                image="https://github.com/ezeJona.png"
+                name={
+                  isLoading
+                    ? "Cargando..."
+                    : userData
+                    ? `${userData.first_name} ${userData.first_last_name}`
+                    : "Usuario"
+                }
+                email={user?.email || "Desconocido"}
+                image={avatarPreviewOrPlaceholder(user)}
                 onSignOut={() => callSignOutUser()}
               />
+
             </div>
           </div>
         </div>
