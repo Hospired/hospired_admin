@@ -8,6 +8,7 @@ import SettingsMenu from "./SettingMenu";
 import { Input } from "@/components/ui/input";
 import { UserMenu } from "../user-menu";
 import { signOutUser } from "@/backend-api/apiService";
+import { useUser } from "@/hooks/use-user";
 
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "../mode-toggle";
@@ -57,6 +58,7 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
   ) => {
     const id = useId();
     const router = useRouter();
+    const { user, userData, isLoading } = useUser();
 
     const callSignOutUser = useCallback(async () => {
       try {
@@ -82,6 +84,7 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
               placeholder={searchPlaceholder}
               type="search"
               value={searchValue}
+              disabled={isLoading}
               onChange={(e) => onSearchChange?.(e.target.value)}
             />
             <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-2 peer-disabled:opacity-50">
@@ -116,9 +119,13 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
               {/* Settings */}
               <SettingsMenu onItemClick={onSettingsItemClick} />
               <UserMenu
-                name="Jonathan Martinez"
-                email="jonathan@example.com"
-                image="https://github.com/ezeJona.png"
+                name={
+                  userData
+                    ? `${userData.firstName} ${userData.secondName} ${userData.firstLastName} ${userData.secondLastName}`
+                    : ""
+                }
+                email={user?.email ?? ""}
+                image={userData?.avatar ?? ""}
                 onSignOut={() => callSignOutUser()}
               />
             </div>

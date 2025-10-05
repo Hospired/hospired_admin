@@ -1,6 +1,18 @@
-import { tableRowClasses } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
-import { AdminUserRes } from "./dtos";
+import {
+  AdminUserRes,
+  CreateAdminUserReq,
+  CreatePhysicianReq,
+  PhysicianRes,
+} from "./dtos";
+
+export async function createAdminUser(req: CreateAdminUserReq) {
+  // TODO
+}
+
+export async function createPhysician(req: CreatePhysicianReq) {
+  // TODO
+}
 
 export async function getAdminUser(id: string) {
   const { data, error } = await supabase
@@ -10,27 +22,33 @@ export async function getAdminUser(id: string) {
     .maybeSingle(); // expects only one row (or null) single create admin user
 
   if (error) {
-    throw new Error(`Error fetching admin user: ${error.message}`);
+    throw error; //new Error(`Error fetching admin user: ${error.message}`);
   }
 
   if (!data) return null;
 
   const result: AdminUserRes = {
     id: data.id,
-    first_name: data.first_name,
-    second_name: data.second_name ?? undefined,
-    first_last_name: data.first_last_name,
-    second_last_name: data.second_last_name ?? undefined,
-    is_physician: data.is_physician,
-    is_super_user: data.is_super_user,
+    firstName: data.first_name,
+    secondName: data.second_name ?? undefined,
+    firstLastName: data.firstLastName,
+    secondLastName: data.secondLastName ?? undefined,
+    isPhysician: data.is_physician,
+    isSuperUser: data.is_super_user,
     avatar: data.avatar ?? undefined,
-    date_of_birth: data.date_of_birth
-      ? new Date(data.date_of_birth)
-      : undefined,
-    created_at: new Date(data.created_at),
+    dateOfBirth: data.date_of_birth ? new Date(data.date_of_birth) : undefined,
+    createdAt: new Date(data.created_at),
   };
 
   return result;
+}
+
+export async function getPhysicianByAdminUserId(adminUserId: string) {
+  // TODO: returns PhysicianRes
+}
+
+export async function getPhysicianById(physicianId: number) {
+  // TODO: returns PhysicianRes
 }
 
 export async function signUpUser(email: string, password: string) {

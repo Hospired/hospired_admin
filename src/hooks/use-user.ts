@@ -1,132 +1,114 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { User, PostgrestError, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { getAdminUser } from "@/backend-api/apiService";
 import { AdminUserRes } from "@/backend-api/dtos";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 interface UseUserReturn {
-  user: any | null;
+  user: User | null;
   userData: AdminUserRes | null;
-  exists: boolean | null;
   isLoading: boolean;
   error: string | null;
 }
 
 export function useUser(): UseUserReturn {
   const router = useRouter();
-  const [user, setUser] = useState<any | null>(null);
+  const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<AdminUserRes | null>(null);
-  const [exists, setExists] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // rutas que NO necesitan sesión
-  const publicRoutes = ["/auth/sign-in", "/auth/sign-up"];
+  const publicRoutes = useMemo(() => ["/auth/sign-in", "/auth/sign-up"], []);
+
+  const redirectToSignIn = useCallback(() => {
+    if (!publicRoutes.includes(pathname)) {
+      router.push("/auth/sign-in");
+    }
+  }, [pathname, publicRoutes, router]);
+
+  const redirectToSetupUser = useCallback(() => {
+    if (pathname !== "/auth/setup-user") {
+      router.push("/auth/setup-user");
+    }
+  }, [pathname, router]);
+
+  const fetchUserData = useCallback(
+    async (sessionUser: User) => {
+      try {
+        const adminUser = await getAdminUser(sessionUser.id);
+        if (adminUser) {
+          setUserData(adminUser);
+        } else {
+          setUserData(null);
+          redirectToSetupUser();
+        }
+      } catch (err) {
+        if (err instanceof PostgrestError) {
+          setError(err.message);
+        } else {
+          setError("Unknown error fetching admin user data");
+        }
+        console.error("Error fetching admin user:", err);
+        setUserData(null);
+      }
+    },
+    [redirectToSetupUser],
+  );
+
+  const checkUser = useCallback(async () => {
+    try {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
+      if (!sessionUser) {
+        setUserData(null);
+        redirectToSignIn();
+        return;
+      }
+      await fetchUserData(sessionUser);
+    } catch (err) {
+      console.error("Error in useUser:", err);
+      if (err instanceof AuthError || err instanceof Error) {
+        setError(err.message ?? "Unknown error");
+      } else {
+        setError("Unknown error fetching auth user");
+      }
+      setUserData(null);
+      redirectToSignIn();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUserData, redirectToSignIn]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const checkUser = async () => {
-      try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        const sessionUser = data.session?.user ?? null;
-
-        if (!sessionUser) {
-          if (mounted) {
-            setUser(null);
-            setExists(false);
-            setUserData(null);
-
-            // redirigir solo si NO estoy en ruta pública
-            if (!publicRoutes.includes(window.location.pathname)) {
-              router.push("/auth/sign-in");
-            }
-          }
-          return;
-        }
-
-        if (mounted) setUser(sessionUser);
-
-        // Buscar en admin_users
-        const adminUser = await getAdminUser(sessionUser.id);
-
-        if (mounted) {
-          if (adminUser) {
-            setExists(true);
-            setUserData(adminUser);
-          } else {
-            setExists(false);
-            setUserData(null);
-            // si ya está logueado pero no tiene perfil → mandar al setup
-            if (window.location.pathname !== "/auth/setup-user") {
-              router.push("/auth/setup-user");
-            }
-          }
-        }
-      } catch (err: any) {
-        console.error("Error en useUser:", err);
-        if (mounted) {
-          setUser(null);
-          setExists(false);
-          setUserData(null);
-          setError(err?.message ?? "Unknown error");
-
-          if (!publicRoutes.includes(window.location.pathname)) {
-            router.push("/auth/sign-in");
-          }
-        }
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
     checkUser();
 
-    // Escuchar cambios de sesión
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
-
+      (_event, session) => {
         const sessionUser = session?.user ?? null;
         setUser(sessionUser);
 
         if (!sessionUser) {
           setUserData(null);
-          setExists(false);
-          if (!publicRoutes.includes(window.location.pathname)) {
-            router.push("/auth/sign-in");
-          }
-          return;
+          redirectToSignIn();
+        } else {
+          fetchUserData(sessionUser);
         }
-
-        try {
-          const adminUser = await getAdminUser(sessionUser.id);
-          if (adminUser) {
-            setExists(true);
-            setUserData(adminUser);
-          } else {
-            setExists(false);
-            setUserData(null);
-            if (window.location.pathname !== "/auth/setup-user") {
-              router.push("/auth/setup-user");
-            }
-          }
-        } catch (err: any) {
-          console.error("Error al verificar adminUser:", err);
-          setError(err?.message ?? "Unknown error");
-        }
-      }
+      },
     );
 
     return () => {
-      mounted = false;
       listener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [checkUser, fetchUserData, redirectToSignIn]);
 
-  return { user, userData, exists, isLoading, error };
+  return { user, userData, isLoading, error };
 }
