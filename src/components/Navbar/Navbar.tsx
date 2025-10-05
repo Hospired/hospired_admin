@@ -121,7 +121,7 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
               <UserMenu
                 name={
                   userData
-                    ? `${userData.first_name} ${userData.second_name} ${userData.first_last_name} ${userData.second_last_name}`
+                    ? `${userData.firstName} ${userData.secondName} ${userData.firstLastName} ${userData.secondLastName}`
                     : ""
                 }
                 email={user?.email ?? ""}

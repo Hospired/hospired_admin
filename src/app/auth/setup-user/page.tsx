@@ -1,36 +1,52 @@
 "use client";
 import { useState, ChangeEvent } from "react";
-import { supabase } from "@/lib/supabaseClient"; 
+import { supabase } from "@/lib/supabaseClient";
 import { CreateAdminUserReq } from "@/backend-api/dtos";
 import { redirect } from "next/navigation";
 
 // UI Components
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/mode-toggle";
-import { CalendarIcon, UserIcon, ShieldCheckIcon, StethoscopeIcon, ImageIcon, Upload } from "lucide-react";
-import { Router } from "next/router";
+import {
+  CalendarIcon,
+  UserIcon,
+  ShieldCheckIcon,
+  StethoscopeIcon,
+  ImageIcon,
+  Upload,
+} from "lucide-react";
 
 export default function AdminUserForm() {
-  const [inputValues, setInputValues] = useState<Omit<CreateAdminUserReq, "id" | "avatar">>({
-    first_name: "",
-    second_name: "",
-    first_last_name: "",
-    second_last_name: "",
-    is_physician: false,
-    is_super_user: false,
-    date_of_birth: undefined,
+  const [inputValues, setInputValues] = useState<
+    Omit<CreateAdminUserReq, "id" | "avatar">
+  >({
+    firstName: "",
+    secondName: "",
+    firstLastName: "",
+    secondLastName: "",
+    isPhysician: false,
+    isSuperUser: false,
+    dateOfBirth: undefined,
   });
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
 
   // Cambios en inputs de texto/fecha
-  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
     const { name, value } = event.target;
     setInputValues((prev) => ({
       ...prev,
@@ -61,16 +77,18 @@ export default function AdminUserForm() {
 
   // Iniciales de fallback
   const getInitials = () => {
-    const first = inputValues.first_name?.charAt(0) || "";
-    const last = inputValues.first_last_name?.charAt(0) || "";
+    const first = inputValues.firstName?.charAt(0) || "";
+    const last = inputValues.firstLastName?.charAt(0) || "";
     return `${first}${last}`.toUpperCase() || "UN";
   };
 
   // Insert en Supabase
   async function onCreate() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
     if (userError || !user) {
       alert("No se pudo obtener el usuario autenticado");
       return;
@@ -79,10 +97,10 @@ export default function AdminUserForm() {
     const { error } = await supabase.from("admin_users").insert([
       {
         id: user.id,
-        
+
         ...inputValues,
-        date_of_birth: inputValues.date_of_birth
-          ? new Date(inputValues.date_of_birth).toISOString()
+        date_of_birth: inputValues.dateOfBirth
+          ? new Date(inputValues.dateOfBirth).toISOString()
           : null,
         avatar: avatarPreview || null,
       },
@@ -93,20 +111,20 @@ export default function AdminUserForm() {
       alert("Error: " + error.message);
     } else {
       alert("Usuario creado con éxito - Bienvenido al Panel de administración");
-      redirect("/dashboard/")
+      redirect("/dashboard/");
     }
   }
 
   // Reset formulario
   function resetForm() {
     setInputValues({
-      first_name: "",
-      second_name: "",
-      first_last_name: "",
-      second_last_name: "",
-      is_physician: false,
-      is_super_user: false,
-      date_of_birth: undefined,
+      firstName: "",
+      secondName: "",
+      firstLastName: "",
+      secondLastName: "",
+      isPhysician: false,
+      isSuperUser: false,
+      dateOfBirth: undefined,
     });
     setAvatarPreview(null);
     setAvatarFileName(null);
@@ -120,7 +138,9 @@ export default function AdminUserForm() {
 
       <div className="mx-auto max-w-4xl space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Gestión de Usuario Administrativo</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Gestión de Usuario Administrativo
+          </h1>
           <p className="text-muted-foreground">
             Complete la información del usuario del sistema
           </p>
@@ -140,7 +160,10 @@ export default function AdminUserForm() {
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
             <Avatar className="h-24 w-24 border-4 border-primary/20">
-              <AvatarImage src={avatarPreview || "/placeholder.svg"} alt="Avatar" />
+              <AvatarImage
+                src={avatarPreview || "/placeholder.svg"}
+                alt="Avatar"
+              />
               <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
                 {getInitials()}
               </AvatarFallback>
@@ -183,7 +206,7 @@ export default function AdminUserForm() {
                 name="first_name"
                 required
                 placeholder="Juan"
-                value={inputValues.first_name}
+                value={inputValues.firstName}
                 onChange={handleChange}
               />
             </div>
@@ -194,7 +217,7 @@ export default function AdminUserForm() {
                 id="second_name"
                 name="second_name"
                 placeholder="Carlos"
-                value={inputValues.second_name || ""}
+                value={inputValues.secondName || ""}
                 onChange={handleChange}
               />
             </div>
@@ -206,7 +229,7 @@ export default function AdminUserForm() {
                 name="first_last_name"
                 required
                 placeholder="Pérez"
-                value={inputValues.first_last_name}
+                value={inputValues.firstLastName}
                 onChange={handleChange}
               />
             </div>
@@ -217,7 +240,7 @@ export default function AdminUserForm() {
                 id="second_last_name"
                 name="second_last_name"
                 placeholder="García"
-                value={inputValues.second_last_name || ""}
+                value={inputValues.secondLastName || ""}
                 onChange={handleChange}
               />
             </div>
@@ -229,7 +252,11 @@ export default function AdminUserForm() {
                   id="date_of_birth"
                   name="date_of_birth"
                   type="date"
-                  value={inputValues.date_of_birth ? inputValues.date_of_birth.toString() : ""}
+                  value={
+                    inputValues.dateOfBirth
+                      ? inputValues.dateOfBirth.toString()
+                      : ""
+                  }
                   onChange={handleChange}
                 />
                 <CalendarIcon className="absolute right-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -245,40 +272,53 @@ export default function AdminUserForm() {
               <ShieldCheckIcon className="h-5 w-5 text-primary" />
               Roles y Permisos
             </CardTitle>
-            <CardDescription>Configure los permisos del usuario en el sistema</CardDescription>
+            <CardDescription>
+              Configure los permisos del usuario en el sistema
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Médico */}
             <div
               className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.is_physician ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                inputValues.isPhysician
+                  ? "bg-green-50 border-green-200"
+                  : "bg-gray-50 border-gray-200"
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-full ${inputValues.is_physician ? "bg-green-100" : "bg-gray-100"}`}>
+                <div
+                  className={`p-2 rounded-full ${inputValues.isPhysician ? "bg-green-100" : "bg-gray-100"}`}
+                >
                   <StethoscopeIcon
-                    className={`h-5 w-5 ${inputValues.is_physician ? "text-green-600" : "text-gray-500"}`}
+                    className={`h-5 w-5 ${inputValues.isPhysician ? "text-green-600" : "text-gray-500"}`}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="is_physician" className="text-base font-medium cursor-pointer">
+                  <Label
+                    htmlFor="is_physician"
+                    className="text-base font-medium cursor-pointer"
+                  >
                     Es Médico
                   </Label>
-                  <p className="text-sm text-muted-foreground">Usuario con credenciales médicas</p>
+                  <p className="text-sm text-muted-foreground">
+                    Usuario con credenciales médicas
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <span
                   className={`text-sm font-medium ${
-                    inputValues.is_physician ? "text-green-600" : "text-gray-500"
+                    inputValues.isPhysician ? "text-green-600" : "text-gray-500"
                   }`}
                 >
-                  {inputValues.is_physician ? "Activo" : "Inactivo"}
+                  {inputValues.isPhysician ? "Activo" : "Inactivo"}
                 </span>
                 <Switch
                   id="is_physician"
-                  checked={inputValues.is_physician}
-                  onCheckedChange={(checked) => handleSwitch("is_physician", checked)}
+                  checked={inputValues.isPhysician}
+                  onCheckedChange={(checked) =>
+                    handleSwitch("isPhysician", checked)
+                  }
                 />
               </div>
             </div>
@@ -286,47 +326,65 @@ export default function AdminUserForm() {
             {/* Super Usuario */}
             <div
               className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.is_super_user ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
+                inputValues.isSuperUser
+                  ? "bg-blue-50 border-blue-200"
+                  : "bg-gray-50 border-gray-200"
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-full ${inputValues.is_super_user ? "bg-blue-100" : "bg-gray-100"}`}>
+                <div
+                  className={`p-2 rounded-full ${inputValues.isSuperUser ? "bg-blue-100" : "bg-gray-100"}`}
+                >
                   <ShieldCheckIcon
-                    className={`h-5 w-5 ${inputValues.is_super_user ? "text-blue-600" : "text-gray-500"}`}
+                    className={`h-5 w-5 ${inputValues.isSuperUser ? "text-blue-600" : "text-gray-500"}`}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="is_super_user" className="text-base font-medium cursor-pointer">
+                  <Label
+                    htmlFor="is_super_user"
+                    className="text-base font-medium cursor-pointer"
+                  >
                     Super Usuario
                   </Label>
-                  <p className="text-sm text-muted-foreground">Acceso completo al sistema</p>
+                  <p className="text-sm text-muted-foreground">
+                    Acceso completo al sistema
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <span
                   className={`text-sm font-medium ${
-                    inputValues.is_super_user ? "text-blue-600" : "text-gray-500"
+                    inputValues.isSuperUser ? "text-blue-600" : "text-gray-500"
                   }`}
                 >
-                  {inputValues.is_super_user ? "Activo" : "Inactivo"}
+                  {inputValues.isSuperUser ? "Activo" : "Inactivo"}
                 </span>
                 <Switch
                   id="is_super_user"
-                  checked={inputValues.is_super_user}
-                  onCheckedChange={(checked) => handleSwitch("is_super_user", checked)}
+                  checked={inputValues.isSuperUser}
+                  onCheckedChange={(checked) =>
+                    handleSwitch("isSuperUser", checked)
+                  }
                 />
               </div>
             </div>
           </CardContent>
         </Card>
-        <p className="text-sm text-muted-foreground">Este formulario sera llenado solamente una vez</p>
+        <p className="text-sm text-muted-foreground">
+          Este formulario sera llenado solamente una vez
+        </p>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end">
           <Button type="button" variant="outline" size="lg" onClick={resetForm}>
             Cancelar
           </Button>
-          <Button type="button" size="lg" className="bg-primary hover:bg-primary/90" onClick={onCreate}>
+          <Button
+            type="button"
+            size="lg"
+            className="bg-primary hover:bg-primary/90"
+            onClick={onCreate}
+          >
             Crear Usuario
           </Button>
         </div>

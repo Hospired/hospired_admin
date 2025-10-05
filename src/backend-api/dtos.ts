@@ -2,24 +2,46 @@
 
 export type AdminUserRes = {
   id: string;
-  first_name: string;
-  second_name?: string;
-  first_last_name: string;
-  second_last_name?: string;
-  is_physician: boolean;
-  is_super_user: boolean;
+  firstName: string;
+  secondName?: string;
+  firstLastName: string;
+  secondLastName?: string;
+  isPhysician: boolean;
+  isSuperUser: boolean;
   avatar?: string;
-  date_of_birth?: Date;
-  created_at: Date;
+  dateOfBirth?: Date;
+  createdAt: Date;
 };
 
 export type CreateAdminUserReq = {
   id: string;
-  first_name: string;
-  second_name?: string;
-  first_last_name: string;
-  second_last_name?: string;
-  is_physician: boolean;
-  is_super_user: boolean;
-  date_of_birth?: Date;
+  firstName: string;
+  secondName?: string;
+  firstLastName: string;
+  secondLastName?: string;
+  isPhysician: boolean;
+  isSuperUser: boolean;
+  dateOfBirth?: Date;
+};
+
+export type CreatePhysicianReq = {
+  adminUserId: string;
+  nationalId: string;
+  licenseId: string;
+  specialty: string;
+  public_email: string;
+  phone_number: string;
+  notes?: string;
+};
+
+export type PhysicianRes = {
+  id: number;
+  adminUserId: string;
+  nationalId: string;
+  licenseId: string;
+  specialty: string;
+  public_email: string;
+  phone_number: string;
+  notes?: string;
+  createdAt: Date;
 };
