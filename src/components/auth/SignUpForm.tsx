@@ -3,20 +3,22 @@
 import React, { useState } from "react";
 import RouterLink from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
-import FormControl from "@mui/material/FormControl";
-import FormHelperText from "@mui/material/FormHelperText";
-import InputLabel from "@mui/material/InputLabel";
-import Link from "@mui/material/Link";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { Controller, useForm } from "react-hook-form";
 import { z as zod } from "zod";
-
 import { AuthError } from "@supabase/supabase-js";
 import { signUpUser } from "@/backend-api/apiService";
+
+// ⚡️ Aquí tus componentes de UI tipo shadcn
+import {
+  FieldGroup,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldSeparator,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 const schema = zod
   .object({
@@ -62,113 +64,106 @@ export function SignUpForm(): React.JSX.Element {
   };
 
   return (
-    <Stack spacing={4} sx={{ maxWidth: 400, mx: "auto", mt: 8 }}>
+    <div className="mx-auto mt-8 max-w-md">
       {confirmationEmailSent ? (
-        <Stack spacing={4} textAlign="center">
-          <Alert severity="success">
-            Hemos enviado un correo a {submittedEmail}. Revisa tu correo para
-            confirmar tu cuenta.
-          </Alert>
-          <Link
-            component={RouterLink}
-            href="/auth/sign-in"
-            underline="hover"
-            variant="subtitle2"
+        <div className="mx-auto mt-8 max-w-md flex flex-col items-center gap-4">
+          <Alert
+            className="flex flex-col items-center justify-center text-center bg-green-100 text-green-800 border border-green-300 shadow-md p-4 rounded-lg animate-in slide-in-from-top"
           >
-            Ir a inicio
-          </Link>
-        </Stack>
-      ) : (
-        <>
-          <Stack spacing={1} textAlign="center">
-            <Typography variant="h4">Crear cuenta</Typography>
-            <Typography color="text.secondary" variant="body2">
-              ¿Ya tienes cuenta?{" "}
-              <Link
-                component={RouterLink}
-                href="/auth/sign-in"
-                underline="hover"
-                variant="subtitle2"
-              >
-                Inicia sesión
-              </Link>
-            </Typography>
-          </Stack>
+            <span className="text-2xl mb-2">¡Cuenta creada con éxito!</span>
+            <span>
+              Hemos enviado un correo a <strong>{submittedEmail}</strong>. 
+              Revisa tu bandeja de entrada para confirmar tu cuenta.
+            </span>
+          </Alert>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Stack spacing={2}>
+            <RouterLink
+              href="/auth/sign-in"
+              className="mt-2 text-green-700 hover:underline text-sm"
+            >
+              Ir a inicio
+            </RouterLink>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <FieldGroup>
+            {/* Header */}
+            <div className="flex flex-col items-center gap-2 text-center">
+              <h1 className="text-2xl font-bold">Crear cuenta</h1>
+              <p className="text-muted-foreground text-sm text-balance">
+                Ingresa tu correo y contraseña para registrarte
+              </p>
+            </div>
+
+            {/* Email */}
+            <Field>
+              <FieldLabel htmlFor="email">Correo electrónico</FieldLabel>
               <Controller
                 control={control}
                 name="email"
                 render={({ field }) => (
-                  <FormControl error={Boolean(errors.email)}>
-                    <InputLabel>Correo electrónico</InputLabel>
-                    <OutlinedInput
-                      {...field}
-                      type="email"
-                      label="Correo electrónico"
-                    />
-                    {errors.email && (
-                      <FormHelperText>{errors.email.message}</FormHelperText>
-                    )}
-                  </FormControl>
+                  <Input id="email" type="email" placeholder="m@example.com" {...field} />
                 )}
               />
-
-              <Controller
-                control={control}
-                name="password"
-                render={({ field }) => (
-                  <FormControl error={Boolean(errors.password)}>
-                    <InputLabel>Contraseña</InputLabel>
-                    <OutlinedInput
-                      {...field}
-                      type="password"
-                      label="Contraseña"
-                    />
-                    {errors.password && (
-                      <FormHelperText>{errors.password.message}</FormHelperText>
-                    )}
-                  </FormControl>
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormControl error={Boolean(errors.confirmPassword)}>
-                    <InputLabel>Confirmar contraseña</InputLabel>
-                    <OutlinedInput
-                      {...field}
-                      type="password"
-                      label="Confirmar contraseña"
-                    />
-                    {errors.confirmPassword && (
-                      <FormHelperText>
-                        {errors.confirmPassword.message}
-                      </FormHelperText>
-                    )}
-                  </FormControl>
-                )}
-              />
-
-              {errors.root && (
-                <Alert severity="error">{errors.root.message}</Alert>
+              {errors.email && (
+                <FieldDescription className="text-red-500">{errors.email.message}</FieldDescription>
               )}
+              <FieldDescription>
+                Usaremos este correo para contactarte. No lo compartiremos con nadie.
+              </FieldDescription>
+            </Field>
 
-              <Button
-                disabled={isPending}
-                type="submit"
-                variant="contained"
-                fullWidth
-              >
+            {/* Password + Confirm */}
+            <Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="password">Contraseña</FieldLabel>
+                  <Controller
+                    control={control}
+                    name="password"
+                    render={({ field }) => <Input id="password" type="password" {...field} />}
+                  />
+                  {errors.password && (
+                    <FieldDescription className="text-red-500">{errors.password.message}</FieldDescription>
+                  )}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="confirmPassword">Confirmar contraseña</FieldLabel>
+                  <Controller
+                    control={control}
+                    name="confirmPassword"
+                    render={({ field }) => <Input id="confirmPassword" type="password" {...field} />}
+                  />
+                  {errors.confirmPassword && (
+                    <FieldDescription className="text-red-500">{errors.confirmPassword.message}</FieldDescription>
+                  )}
+                </Field>
+              </div>
+              <FieldDescription>Mínimo 6 caracteres.</FieldDescription>
+            </Field>
+
+            {/* Error global */}
+            {errors.root && (
+              <Alert variant="destructive">{errors.root.message}</Alert>
+            )}
+
+            {/* Submit */}
+            <Field>
+              <Button type="submit" disabled={isPending} className="w-full">
                 {isPending ? "Creando cuenta..." : "Registrarme"}
               </Button>
-            </Stack>
-          </form>
-        </>
-      )}
-    </Stack>
+            </Field>
+
+            {/* Footer */}
+            <FieldDescription className="text-center">
+              ¿Ya tienes cuenta?{" "}
+              <RouterLink href="/auth/sign-in" className="text-blue-600 hover:underline">
+                Inicia sesión
+              </RouterLink>
+            </FieldDescription>
+          </FieldGroup>
+        </form>
+      )}  
+    </div>
   );
 }
