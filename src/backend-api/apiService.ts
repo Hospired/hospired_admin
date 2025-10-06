@@ -7,7 +7,25 @@ import {
 } from "./dtos";
 
 export async function createAdminUser(req: CreateAdminUserReq) {
-  // TODO
+  const { error } = await supabase
+    .from("admin_users")
+    .insert({
+      id: req.id,
+      first_name: req.firstName,
+      second_name: req.secondName ?? null,
+      first_last_name: req.firstLastName,
+      second_last_name: req.secondLastName ?? null,
+      is_physician: req.isPhysician,
+      is_super_user: false,
+      date_of_birth: req.dateOfBirth
+        ? req.dateOfBirth.toISOString()
+        : null,
+      avatar: req.avatar ?? null,
+    });
+
+  if (error) {
+    throw error; //Error(`Error al crear admin user: ${error.message}`)
+  } 
 }
 
 export async function createPhysician(req: CreatePhysicianReq) {
@@ -31,8 +49,8 @@ export async function getAdminUser(id: string) {
     id: data.id,
     firstName: data.first_name,
     secondName: data.second_name ?? undefined,
-    firstLastName: data.firstLastName,
-    secondLastName: data.secondLastName ?? undefined,
+    firstLastName: data.first_Last_Name,
+    secondLastName: data.second_Last_Name ?? undefined,
     isPhysician: data.is_physician,
     isSuperUser: data.is_super_user,
     avatar: data.avatar ?? undefined,
@@ -49,6 +67,16 @@ export async function getPhysicianByAdminUserId(adminUserId: string) {
 
 export async function getPhysicianById(physicianId: number) {
   // TODO: returns PhysicianRes
+}
+
+export async function getAuthUser() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("No se pudo obtener el usuario autenticado");
+  }
+
+  return data.user;
 }
 
 export async function signUpUser(email: string, password: string) {

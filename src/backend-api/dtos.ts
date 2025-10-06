@@ -22,6 +22,7 @@ export type CreateAdminUserReq = {
   isPhysician: boolean;
   isSuperUser: boolean;
   dateOfBirth?: Date;
+  avatar?: string;
 };
 
 export type CreatePhysicianReq = {

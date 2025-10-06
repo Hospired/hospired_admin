@@ -2,7 +2,8 @@
 import { useState, ChangeEvent } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { CreateAdminUserReq } from "@/backend-api/dtos";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { createAdminUser, getAuthUser } from "@/backend-api/apiService";
 
 // UI Components
 import {
@@ -24,10 +25,13 @@ import {
   ShieldCheckIcon,
   StethoscopeIcon,
   ImageIcon,
+  PhoneIcon,
   Upload,
+  AwardIcon as IdCardIcon
 } from "lucide-react";
 
 export default function AdminUserForm() {
+  const router = useRouter();
   const [inputValues, setInputValues] = useState<
     Omit<CreateAdminUserReq, "id" | "avatar">
   >({
@@ -83,37 +87,31 @@ export default function AdminUserForm() {
   };
 
   // Insert en Supabase
-  async function onCreate() {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      alert("No se pudo obtener el usuario autenticado");
-      return;
+async function onCreate() {
+  try {
+    const user = await getAuthUser();
+    const payload: CreateAdminUserReq = {
+      id: user.id,
+      firstName: inputValues.firstName,
+      secondName: inputValues.secondName,
+      firstLastName: inputValues.firstLastName,
+      secondLastName: inputValues.secondLastName,
+      isPhysician: inputValues.isPhysician,
+      isSuperUser: false,
+      dateOfBirth: inputValues.dateOfBirth
+        ? new Date(inputValues.dateOfBirth)
+        : undefined,
+      avatar: avatarPreview || undefined,
     }
 
-    const { error } = await supabase.from("admin_users").insert([
-      {
-        id: user.id,
-
-        ...inputValues,
-        date_of_birth: inputValues.dateOfBirth
-          ? new Date(inputValues.dateOfBirth).toISOString()
-          : null,
-        avatar: avatarPreview || null,
-      },
-    ]);
-
-    if (error) {
-      console.error(error);
-      alert("Error: " + error.message);
-    } else {
-      alert("Usuario creado con éxito - Bienvenido al Panel de administración");
-      redirect("/dashboard/");
-    }
+    await createAdminUser(payload)
+    alert("Usuario creado correctamente 🎉")
+    router.push("/dashboard/")
+  } catch (error: any) {
+    alert("Error: " + error.message)
   }
+}
+
 
   // Reset formulario
   function resetForm() {
@@ -200,10 +198,10 @@ export default function AdminUserForm() {
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="first_name">Primer Nombre *</Label>
+              <Label htmlFor="firstName">Primer Nombre *</Label>
               <Input
-                id="first_name"
-                name="first_name"
+                id="firstName"
+                name="firstName"
                 required
                 placeholder="Juan"
                 value={inputValues.firstName}
@@ -212,10 +210,10 @@ export default function AdminUserForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="second_name">Segundo Nombre</Label>
+              <Label htmlFor="secondName">Segundo Nombre</Label>
               <Input
-                id="second_name"
-                name="second_name"
+                id="secondName"
+                name="secondName"
                 placeholder="Carlos"
                 value={inputValues.secondName || ""}
                 onChange={handleChange}
@@ -223,10 +221,10 @@ export default function AdminUserForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="first_last_name">Primer Apellido *</Label>
+              <Label htmlFor="firstLastName">Primer Apellido *</Label>
               <Input
-                id="first_last_name"
-                name="first_last_name"
+                id="firstLastName"
+                name="firstLastName"
                 required
                 placeholder="Pérez"
                 value={inputValues.firstLastName}
@@ -235,10 +233,10 @@ export default function AdminUserForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="second_last_name">Segundo Apellido</Label>
+              <Label htmlFor="secondLastName">Segundo Apellido</Label>
               <Input
-                id="second_last_name"
-                name="second_last_name"
+                id="secondLastName"
+                name="secondLastName"
                 placeholder="García"
                 value={inputValues.secondLastName || ""}
                 onChange={handleChange}
@@ -246,11 +244,11 @@ export default function AdminUserForm() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="date_of_birth">Fecha de Nacimiento</Label>
+              <Label htmlFor="dateOfBirth">Fecha de Nacimiento</Label>
               <div className="relative">
                 <Input
-                  id="date_of_birth"
-                  name="date_of_birth"
+                  id="dateOfBirth"
+                  name="dateOfBirth"
                   type="date"
                   value={
                     inputValues.dateOfBirth
@@ -279,15 +277,16 @@ export default function AdminUserForm() {
           <CardContent className="space-y-6">
             {/* Médico */}
             <div
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.isPhysician
-                  ? "bg-green-50 border-green-200"
-                  : "bg-gray-50 border-gray-200"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`p-2 rounded-full ${inputValues.isPhysician ? "bg-green-100" : "bg-gray-100"}`}
+              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 
+                ${
+                  inputValues.isPhysician
+                  ? "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700"
+                  : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700"
+                }`}
+                >
+                  <div className="flex items-center space-x-3">
+                  <div
+                    className={`p-2 rounded-full ${inputValues.isPhysician ? "bg-green-100" : "bg-gray-100"}`}
                 >
                   <StethoscopeIcon
                     className={`h-5 w-5 ${inputValues.isPhysician ? "text-green-600" : "text-gray-500"}`}
@@ -295,7 +294,7 @@ export default function AdminUserForm() {
                 </div>
                 <div>
                   <Label
-                    htmlFor="is_physician"
+                    htmlFor="isPhysician"
                     className="text-base font-medium cursor-pointer"
                   >
                     Es Médico
@@ -314,7 +313,7 @@ export default function AdminUserForm() {
                   {inputValues.isPhysician ? "Activo" : "Inactivo"}
                 </span>
                 <Switch
-                  id="is_physician"
+                  id="isPhysician"
                   checked={inputValues.isPhysician}
                   onCheckedChange={(checked) =>
                     handleSwitch("isPhysician", checked)
@@ -323,56 +322,65 @@ export default function AdminUserForm() {
               </div>
             </div>
 
-            {/* Super Usuario */}
-            <div
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                inputValues.isSuperUser
-                  ? "bg-blue-50 border-blue-200"
-                  : "bg-gray-50 border-gray-200"
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`p-2 rounded-full ${inputValues.isSuperUser ? "bg-blue-100" : "bg-gray-100"}`}
-                >
-                  <ShieldCheckIcon
-                    className={`h-5 w-5 ${inputValues.isSuperUser ? "text-blue-600" : "text-gray-500"}`}
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="is_super_user"
-                    className="text-base font-medium cursor-pointer"
-                  >
-                    Super Usuario
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Acceso completo al sistema
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span
-                  className={`text-sm font-medium ${
-                    inputValues.isSuperUser ? "text-blue-600" : "text-gray-500"
-                  }`}
-                >
-                  {inputValues.isSuperUser ? "Activo" : "Inactivo"}
-                </span>
-                <Switch
-                  id="is_super_user"
-                  checked={inputValues.isSuperUser}
-                  onCheckedChange={(checked) =>
-                    handleSwitch("isSuperUser", checked)
-                  }
-                />
-              </div>
-            </div>
           </CardContent>
         </Card>
-        <p className="text-sm text-muted-foreground">
-          Este formulario sera llenado solamente una vez
-        </p>
+                {inputValues.isPhysician && (
+            <Card className="border-2 border-emerald-300 dark:border-emerald-600 shadow-lg animate-in slide-in-from-top-4 duration-300">
+              <CardHeader className=" bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-700">
+                <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                  <StethoscopeIcon className="h-5 w-5" />
+                  Información Profesional del Médico
+                </CardTitle>
+                <CardDescription className="text-emerald-600 dark:text-emerald-400">
+                  Complete los datos profesionales y credenciales médicas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-2 pt-6 focus-ring">
+                <div className="space-y-2">
+                  <Label htmlFor="specialty" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <StethoscopeIcon className="h-4 w-4" />
+                    Especialidad *
+                  </Label>
+                  <Input
+                    id="specialty"
+                    required={inputValues.isPhysician}
+                    placeholder="Cardiología, Pediatría, etc."
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="professional_id" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <IdCardIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Carnet de Identidad Profesional *
+                  </Label>
+                  <Input
+                    id="professional_id"
+                    required={inputValues.isPhysician}
+                    placeholder="CIP-12345"
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2 text-foreground text-emerald-600 dark:text-emerald-400">
+                    <PhoneIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Teléfono *
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    required={inputValues.isPhysician}
+                    placeholder="+505 5745 - 7015"
+                    defaultValue={""}
+                    className="border-slate-300 bg-white  text-slate-900"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end">
