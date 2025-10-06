@@ -1,11 +1,10 @@
 "use client";
 import { useState, ChangeEvent, useRef } from "react";
-import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 import { CreateAdminUserReq } from "@/backend-api/dtos";
 import { useRouter } from "next/navigation";
-import { createAdminUser, getAuthUser } from "@/backend-api/apiService";
-
+import { createAdminUser, getAuthUser, createPhysician } from "@/backend-api/apiService";
+import { medicalSpecialtyMap } from "@/backend-api/dtos";
+import { SelectTrigger, Select, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 // UI Components
 import {
   Card,
@@ -51,7 +50,7 @@ export default function AdminUserForm() {
   });
 
     const [physicianData, setPhysicianData] = useState({
-    nationality: "",
+    nationalId: "",
     licenseNumber: "",
     specialty: "",
     email: "",
@@ -61,70 +60,6 @@ export default function AdminUserForm() {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
-
-  // Comboboxes
-  const [nationalitySearch, setNationalitySearch] = useState("");
-  const [specialtySearch, setSpecialtySearch] = useState("");
-  const [nationalityFocused, setNationalityFocused] = useState(false);
-  const [specialtyFocused, setSpecialtyFocused] = useState(false);
-
-  const nationalityRef = useRef<HTMLDivElement>(null);
-
-    // Datos de ejemplo para combobox
-  const nationalities = [
-    { value: "nicaraguense", label: "Nicaragüense" },
-    { value: "costarricense", label: "Costarricense" },
-    { value: "hondureno", label: "Hondureño" },
-    { value: "salvadoreno", label: "Salvadoreño" },
-    { value: "guatemalteco", label: "Guatemalteco" },
-    { value: "panameño", label: "Panameño" },
-    { value: "mexicano", label: "Mexicano" },
-    { value: "estadounidense", label: "Estadounidense" },
-    { value: "español", label: "Español" },
-    { value: "otro", label: "Otro" },
-  ];
-
-  const specialties = [
-    { value: "cardiologia", label: "Cardiología" },
-    { value: "pediatria", label: "Pediatría" },
-    { value: "neurologia", label: "Neurología" },
-    { value: "dermatologia", label: "Dermatología" },
-    { value: "ginecologia", label: "Ginecología" },
-    { value: "traumatologia", label: "Traumatología" },
-    { value: "oftalmologia", label: "Oftalmología" },
-    { value: "psiquiatria", label: "Psiquiatría" },
-    { value: "medicina-general", label: "Medicina General" },
-    { value: "cirugia-general", label: "Cirugía General" },
-    { value: "anestesiologia", label: "Anestesiología" },
-    { value: "radiologia", label: "Radiología" },
-    { value: "urologia", label: "Urología" },
-    { value: "endocrinologia", label: "Endocrinología" },
-    { value: "gastroenterologia", label: "Gastroenterología" },
-  ];
-
-    const filteredNationalities = nationalities.filter((nat) =>
-    nat.label.toLowerCase().includes(nationalitySearch.toLowerCase())
-  );
-
-  const filteredSpecialties = specialties.filter((spec) =>
-    spec.label.toLowerCase().includes(specialtySearch.toLowerCase())
-  );
-
-  const specialtyRef = useRef<HTMLDivElement>(null);
-
-
-    useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (nationalityRef.current && !nationalityRef.current.contains(event.target as Node)) {
-        setNationalityFocused(false);
-      }
-      if (specialtyRef.current && !specialtyRef.current.contains(event.target as Node)) {
-        setSpecialtyFocused(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Cambios en inputs de texto/fecha
   function handleChange(
@@ -165,18 +100,6 @@ export default function AdminUserForm() {
     return `${first}${last}`.toUpperCase() || "UN";
   };
 
-  const selectNationality = (value: string, label: string) => {
-    setPhysicianData((prev) => ({ ...prev, nationality: value }));
-    setNationalitySearch(label);
-    setNationalityFocused(false);
-  };
-
-  const selectSpecialty = (value: string, label: string) => {
-    setPhysicianData((prev) => ({ ...prev, specialty: value }));
-    setSpecialtySearch(label);
-    setSpecialtyFocused(false);
-  };
-
   // Insert en Supabase
 async function onCreate() {
   try {
@@ -193,9 +116,24 @@ async function onCreate() {
         ? new Date(inputValues.dateOfBirth)
         : undefined,
       avatar: avatarPreview || undefined,
+    };
+
+    await createAdminUser(payload);
+
+    if (inputValues.isPhysician) {
+      const physicianPayload = {
+        adminUserId: payload.id,
+        nationalId: physicianData.nationalId,
+        licenseId: physicianData.licenseNumber,
+        specialty: physicianData.specialty,
+        public_email: physicianData.email,
+        phone_number: physicianData.phone,
+        notes: physicianData.notes || undefined,
+      };
+
+      await createPhysician(physicianPayload);
     }
 
-    await createAdminUser(payload)
     alert("Usuario creado correctamente 🎉")
     router.push("/dashboard/")
   } catch (error: any) {
@@ -425,7 +363,7 @@ async function onCreate() {
           </CardContent>
         </Card>
 
-{/* Información Profesional del Médico */}
+        {/* Información Profesional del Médico */}
         {inputValues.isPhysician && (
           <Card className="border-2 border-emerald-300 dark:border-emerald-600 shadow-lg animate-in slide-in-from-top-4 duration-300">
             <CardHeader className="bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-700">
@@ -438,37 +376,24 @@ async function onCreate() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2 pt-6">
-              {/* Nacionalidad */}
-              <div className="space-y-2 relative" ref={nationalityRef}>
-                <Label htmlFor="nationality" className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <GlobeIcon className="h-4 w-4" />
-                  Nacionalidad *
+              
+              {/* Cédula del Médico */}
+              <div className="space-y-2">
+                <Label htmlFor="nationalId" className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <IdCardIcon className="h-4 w-4" />
+                  Cédula del Médico *
                 </Label>
                 <Input
-                  id="nationality"
-                  placeholder="Buscar o seleccionar nacionalidad..."
-                  value={nationalitySearch}
-                  onChange={(e) => setNationalitySearch(e.target.value)}
-                  onFocus={() => setNationalityFocused(true)}
+                  id="nationalId"
+                  name="nationalId"
+                  required={inputValues.isPhysician}
+                  placeholder="Ej: 001-123456-0000A"
+                  value={physicianData.nationalId || ""}
+                  onChange={handlePhysicianChange}
                   className="border-slate-300 dark:border-slate-600"
-                  autoComplete="off"
                 />
-                {nationalityFocused && filteredNationalities.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredNationalities.map((nat) => (
-                      <button
-                        key={nat.value}
-                        type="button"
-                        onClick={() => selectNationality(nat.value, nat.label)}
-                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer flex items-center gap-2", physicianData.nationality === nat.value && "bg-accent")}
-                      >
-                        <Check className={cn("h-4 w-4", physicianData.nationality === nat.value ? "opacity-100" : "opacity-0")} />
-                        {nat.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
+
 
               {/* No. Licencia */}
               <div className="space-y-2">
@@ -480,27 +405,31 @@ async function onCreate() {
               </div>
 
               {/* Especialidad */}
-              <div className="space-y-2 relative" ref={specialtyRef}>
-                <Label htmlFor="specialty" className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="specialty"
+                  className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400"
+                >
                   <StethoscopeIcon className="h-4 w-4" />
                   Especialidad *
                 </Label>
-                <Input id="specialty" placeholder="Buscar o seleccionar especialidad..." value={specialtySearch} onChange={(e) => setSpecialtySearch(e.target.value)} onFocus={() => setSpecialtyFocused(true)} className="border-slate-300 dark:border-slate-600" autoComplete="off" />
-                {specialtyFocused && filteredSpecialties.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredSpecialties.map((spec) => (
-                      <button
-                        key={spec.value}
-                        type="button"
-                        onClick={() => selectSpecialty(spec.value, spec.label)}
-                        className={cn("w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer flex items-center gap-2", physicianData.specialty === spec.value && "bg-accent")}
-                      >
-                        <Check className={cn("h-4 w-4", physicianData.specialty === spec.value ? "opacity-100" : "opacity-0")} />
-                        {spec.label}
-                      </button>
+                <Select
+                  value={physicianData.specialty}
+                  onValueChange={(value) =>
+                    setPhysicianData({ ...physicianData, specialty: value })
+                  }
+                >
+                  <SelectTrigger id="specialty" className="border-slate-300 dark:border-slate-600">
+                    <SelectValue placeholder="Seleccione una especialidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(medicalSpecialtyMap).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
                     ))}
-                  </div>
-                )}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Email */}

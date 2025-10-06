@@ -29,7 +29,21 @@ export async function createAdminUser(req: CreateAdminUserReq) {
 }
 
 export async function createPhysician(req: CreatePhysicianReq) {
-  // TODO
+  const { error } = await supabase
+    .from("physicians")
+    .insert({
+      admin_user_id: req.adminUserId,
+      national_id: req.nationalId,
+      license_id: req.licenseId,
+      specialty: req.specialty, // debe coincidir con ENUM en inglés
+      public_email: req.public_email,
+      phone_number: req.phone_number,
+      notes: req.notes ?? null,
+    });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function getAdminUser(id: string) {
