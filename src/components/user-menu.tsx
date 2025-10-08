@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { User } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -40,13 +41,18 @@ export function UserMenu({ name, email, image, onSignOut }: UserMenuProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-            <Link href="/dashboard">Dashboard</Link>
+                <Link href="/dashboard/profile" className="cursor-pointer">
+                    Mi Perfil
+                </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-            <Link href="/settings">Configuración</Link>
+            <Link href="/dashboard" className="cursor-pointer" >Dashboard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+            <Link href="/settings" className="cursor-pointer" >Configuración</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onSignOut}>
+            <DropdownMenuItem className="cursor-pointer" onClick={onSignOut}>
             Cerrar sesión
             </DropdownMenuItem>
         </DropdownMenuContent>

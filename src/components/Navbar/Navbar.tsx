@@ -120,9 +120,11 @@ export const Navbar14 = React.forwardRef<HTMLElement, Navbar14Props>(
               <SettingsMenu onItemClick={onSettingsItemClick} />
               <UserMenu
                 name={
-                  userData
-                    ? `${userData.firstName} ${userData.secondName} ${userData.firstLastName} ${userData.secondLastName}`
-                    : ""
+                  isLoading
+                    ? "Cargando..."
+                    :userData
+                    ? `${userData.firstName} ${userData.firstLastName} ${userData.secondLastName}`
+                    : "Usuario"
                 }
                 email={user?.email ?? ""}
                 image={userData?.avatar ?? ""}
