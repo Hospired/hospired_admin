@@ -1,11 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useUser } from "@/hooks/use-user"
-import { getPhysicianByAdminUserId } from "@/backend-api/apiService"
-import { medicalSpecialtyMap } from "@/backend-api/dtos"
-
-//UI
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -33,48 +28,107 @@ import {
   X,
 } from "lucide-react"
 
-export default function ProfilePage() {
-  const { user, userData, isLoading } = useUser()
+import {
+  getAuthUser,
+  getAdminUser,
+  getPhysicianByAdminUserId,
+  updatePhysician,
+} from "@/backend-api/apiService"
+import { medicalSpecialtyMap } from "@/backend-api/dtos"
+
+export default function PerfilPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [physicianData, setPhysicianData] = useState<any>(null)
 
-  // Cargar datos del médico si el usuario es physician
-  useEffect(() => {
-    if (userData?.isPhysician) {
-      getPhysicianByAdminUserId(userData.id)
-        .then(setPhysicianData)
-        .catch((err) => console.error("Error al obtener physician:", err))
-    }
-  }, [userData])
-
-  // Combinar datos del usuario y physician
-  const profileData = {
-    primerNombre: userData?.firstName ?? "",
-    segundoNombre: userData?.secondName ?? "",
-    primerApellido: userData?.firstLastName ?? "",
-    segundoApellido: userData?.secondLastName ?? "",
-    email: user?.email ?? "",
-    telefono: physicianData?.phone_number ?? "",
-    cedula: physicianData?.nationalId ?? "",
-    fechaNacimiento: userData?.dateOfBirth
-      ? userData.dateOfBirth.toISOString().split("T")[0]
-      : "",
-    especialidad: physicianData?.specialty
-      ? medicalSpecialtyMap[physicianData.specialty] || physicianData.specialty
-      : "",
-    descripcion: physicianData?.notes ?? "",
-    numeroLicencia: physicianData?.licenseId ?? "",
+  const [userData, setUserData] = useState({
+    avatar: "",
+    primerNombre: "",
+    segundoNombre: "",
+    primerApellido: "",
+    segundoApellido: "",
+    email: "",
+    telefono: "",
+    cedula: "",
+    fechaNacimiento: "",
+    especialidad: "",
+    descripcion: "",
+    numeroLicencia: "",
     roles: {
-      doctor: !!userData?.isPhysician,
-      admin: !!userData?.isSuperUser,
+      doctor: false,
       enfermero: false,
+      admin: false,
     },
-  }
+    physicianId: undefined as number | undefined,
+  })
 
-  const handleSave = () => {
-    console.log("Datos a guardar:", profileData)
-    setIsEditing(false)
+  // 🔁 Reverse map para guardar en inglés
+  const reverseSpecialtyMap = Object.fromEntries(
+    Object.entries(medicalSpecialtyMap).map(([en, es]) => [es, en])
+  )
+
+  // 🔹 Cargar datos del usuario desde Supabase
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const authUser = await getAuthUser()
+        const adminUser = await getAdminUser(authUser.id)
+        const physician = await getPhysicianByAdminUserId(authUser.id)
+
+        if (!adminUser) return
+
+        setUserData({
+          avatar: adminUser.avatar || "",
+          primerNombre: adminUser.firstName,
+          segundoNombre: adminUser.secondName || "",
+          primerApellido: adminUser.firstLastName,
+          segundoApellido: adminUser.secondLastName || "",
+          email: authUser.email || "",
+          telefono: physician?.phone_number || "",
+          cedula: physician?.nationalId || "",
+          fechaNacimiento: adminUser.dateOfBirth?.toISOString().split("T")[0] || "",
+          especialidad: physician?.specialty
+            ? medicalSpecialtyMap[physician.specialty] || physician.specialty
+            : "",
+          descripcion: physician?.notes || "",
+          numeroLicencia: physician?.licenseId || "",
+          roles: {
+            doctor: adminUser.isPhysician,
+            enfermero: false,
+            admin: adminUser.isSuperUser,
+          },
+          physicianId: physician?.id,
+        })
+      } catch (err) {
+        console.error("Error cargando perfil:", err)
+      }
+    }
+
+    loadProfile()
+  }, [])
+
+  // 💾 Guardar cambios en Supabase
+  const handleSave = async () => {
+    try {
+      if (!userData.physicianId) {
+        alert("No se encontró el ID del médico.")
+        return
+      }
+
+      const updates = {
+        specialty: reverseSpecialtyMap[userData.especialidad] || userData.especialidad,
+        licenseId: userData.numeroLicencia,
+        public_email: userData.email,
+        phone_number: userData.telefono,
+        notes: userData.descripcion,
+      }
+
+      await updatePhysician(userData.physicianId, updates)
+      setIsEditing(false)
+      alert("Perfil actualizado correctamente ✅")
+    } catch (err) {
+      console.error("Error guardando perfil:", err)
+      alert("Error al guardar los cambios. Revisa la consola.")
+    }
   }
 
   const handlePasswordChange = () => {
@@ -83,27 +137,10 @@ export default function ProfilePage() {
 
   const getRoles = () => {
     const roles = []
-    if (profileData.roles.doctor) roles.push("Doctor")
-    if (profileData.roles.enfermero) roles.push("Enfermero")
-    if (profileData.roles.admin) roles.push("Administrador")
+    if (userData.roles.doctor) roles.push("Doctor")
+    if (userData.roles.enfermero) roles.push("Enfermero")
+    if (userData.roles.admin) roles.push("Administrador")
     return roles
-  }
-
-  // Manejo de estados de carga o error
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-muted-foreground">
-        Cargando perfil...
-      </div>
-    )
-  }
-
-  if (!userData) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-red-500">
-        No se encontró información de usuario.
-      </div>
-    )
   }
 
   return (
@@ -121,13 +158,10 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative group">
                 <Avatar className="h-32 w-32 border-4 border-background shadow-xl ring-2 ring-primary/10">
-                  <AvatarImage
-                    src={userData?.avatar ?? "/placeholder.svg?height=128&width=128"}
-                    alt="Profile"
-                  />
+                  <AvatarImage src={userData?.avatar ?? ""} alt="Profile" />
                   <AvatarFallback className="text-3xl bg-gradient-to-br from-blue-500 to-blue-700 text-white">
-                    {profileData.primerNombre[0]}
-                    {profileData.primerApellido[0]}
+                    {userData.primerNombre[0]}
+                    {userData.primerApellido[0]}
                   </AvatarFallback>
                 </Avatar>
                 <Button
@@ -143,15 +177,12 @@ export default function ProfilePage() {
               <div className="flex-1 space-y-3 pb-4">
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">
-                    {profileData.primerNombre} {profileData.segundoNombre} {profileData.primerApellido}{" "}
-                    {profileData.segundoApellido}
+                    {userData.primerNombre} {userData.segundoNombre} {userData.primerApellido} {userData.segundoApellido}
                   </h1>
-                  {profileData.especialidad && (
-                    <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                      <Briefcase className="h-4 w-4" />
-                      {profileData.especialidad}
-                    </p>
-                  )}
+                  <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                    <Briefcase className="h-4 w-4" />
+                    {userData.especialidad || "Sin especialidad"}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -168,24 +199,18 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  {profileData.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      {profileData.email}
-                    </div>
-                  )}
-                  {profileData.telefono && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      {profileData.telefono}
-                    </div>
-                  )}
-                  {profileData.cedula && (
-                    <div className="flex items-center gap-2">
-                      <IdCard className="h-4 w-4" />
-                      {profileData.cedula}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    {userData.email}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    {userData.telefono}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <IdCard className="h-4 w-4" />
+                    {userData.cedula}
+                  </div>
                 </div>
               </div>
 
@@ -220,7 +245,7 @@ export default function ProfilePage() {
             <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
           </TabsList>
 
-          {/* Información Personal */}
+          {/* Info Personal */}
           <TabsContent value="personal" className="space-y-4">
             <Card>
               <CardHeader>
@@ -229,66 +254,81 @@ export default function ProfilePage() {
                   Datos Personales
                 </CardTitle>
                 <CardDescription>
-                  Información básica y de contacto.
+                  Información básica y de contacto. Los campos sensibles como cédula y fecha de nacimiento no son editables.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Nombres */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    ["primerNombre", "Primer Nombre"],
+                    ["segundoNombre", "Segundo Nombre"],
+                    ["primerApellido", "Primer Apellido"],
+                    ["segundoApellido", "Segundo Apellido"],
+                  ].map(([key, label]) => (
+                    <div key={key} className="space-y-2">
+                      <Label htmlFor={key}>{label}</Label>
+                      <Input id={key} value={(userData as any)[key]} disabled className="bg-muted/50" />
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                {/* Cedula y nacimiento */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Primer Nombre</Label>
-                    <Input value={profileData.primerNombre} disabled className="bg-muted/50" />
+                    <Label htmlFor="cedula">Número de Cédula</Label>
+                    <div className="relative">
+                      <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input id="cedula" value={userData.cedula} disabled className="pl-10 bg-muted/50" />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Segundo Nombre</Label>
-                    <Input value={profileData.segundoNombre} disabled className="bg-muted/50" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Primer Apellido</Label>
-                    <Input value={profileData.primerApellido} disabled className="bg-muted/50" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Segundo Apellido</Label>
-                    <Input value={profileData.segundoApellido} disabled className="bg-muted/50" />
+                    <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="fechaNacimiento"
+                        type="date"
+                        value={userData.fechaNacimiento}
+                        disabled
+                        className="pl-10 bg-muted/50"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <Separator />
 
+                {/* Email y teléfono */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Número de Cédula</Label>
-                    <Input value={profileData.cedula} disabled className="bg-muted/50" />
+                    <Label htmlFor="email">Correo Electrónico</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input id="email" type="email" value={userData.email} disabled className="pl-10 bg-muted/50" />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Fecha de Nacimiento</Label>
-                    <Input type="date" value={profileData.fechaNacimiento} disabled className="bg-muted/50" />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Correo Electrónico</Label>
-                    <Input type="email" value={profileData.email} disabled className="bg-muted/50" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                      El correo electrónico no puede ser modificado por seguridad
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Teléfono</Label>
-                    <Input
-                      value={profileData.telefono}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted/50" : ""}
-                    />
+                    <Label htmlFor="telefono">Teléfono</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="telefono"
+                        value={userData.telefono}
+                        disabled={!isEditing}
+                        className={`pl-10 ${!isEditing ? "bg-muted/50" : ""}`}
+                        onChange={(e) => setUserData({ ...userData, telefono: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Información Profesional */}
+          {/* Info Profesional */}
           <TabsContent value="profesional" className="space-y-4">
             <Card>
               <CardHeader>
@@ -296,52 +336,79 @@ export default function ProfilePage() {
                   <Briefcase className="h-5 w-5" />
                   Información Profesional
                 </CardTitle>
+                <CardDescription>
+                  Especialidad, licencia y descripción profesional. Puedes editar estos campos cuando actives el modo edición.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Roles */}
                 <div className="space-y-4">
                   <Label>Roles en el Sistema</Label>
                   <div className="flex flex-wrap gap-4">
-                    {getRoles().map((role) => (
-                      <Badge key={role} variant="secondary">{role}</Badge>
+                    {[
+                      ["doctor", "Doctor"],
+                      ["enfermero", "Enfermero"],
+                      ["admin", "Administrador"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={key}
+                          checked={(userData.roles as any)[key]}
+                          disabled
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <Label htmlFor={key} className="font-normal">
+                          {label}
+                        </Label>
+                      </div>
                     ))}
                   </div>
-                  
                 </div>
 
                 <Separator />
 
+                {/* Especialidad y licencia */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Especialidad</Label>
+                    <Label htmlFor="especialidad">Especialidad</Label>
                     <Input
-                      value={profileData.especialidad}
+                      id="especialidad"
+                      value={userData.especialidad}
                       disabled={!isEditing}
                       className={!isEditing ? "bg-muted/50" : ""}
+                      onChange={(e) => setUserData({ ...userData, especialidad: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Número de Licencia</Label>
-                    <Input
-                      value={profileData.numeroLicencia}
-                      disabled={!isEditing}
-                      className={!isEditing ? "bg-muted/50" : ""}
-                    />
+                    <Label htmlFor="numeroLicencia">Número de Licencia</Label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="numeroLicencia"
+                        value={userData.numeroLicencia}
+                        disabled={!isEditing}
+                        className={`pl-10 ${!isEditing ? "bg-muted/50" : ""}`}
+                        onChange={(e) => setUserData({ ...userData, numeroLicencia: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <Separator />
 
+                {/* Descripción */}
                 <div className="space-y-2">
-                  <Label>Descripción Profesional</Label>
+                  <Label htmlFor="descripcion">Descripción Profesional</Label>
                   <Textarea
-                    value={profileData.descripcion}
+                    id="descripcion"
+                    value={userData.descripcion}
                     disabled={!isEditing}
                     rows={6}
                     className={`resize-none ${!isEditing ? "bg-muted/50" : ""}`}
+                    onChange={(e) => setUserData({ ...userData, descripcion: e.target.value })}
+                    placeholder="Información adicional sobre experiencia, certificaciones, áreas de interés..."
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Describe tu experiencia profesional, certificaciones y áreas de especialización
-                  </p>
                 </div>
 
                 {isEditing && (
@@ -355,7 +422,6 @@ export default function ProfilePage() {
           </TabsContent>
 
           {/* Seguridad */}
-{/* Seguridad */}
           <TabsContent value="seguridad" className="space-y-4">
             <Card>
               <CardHeader>
@@ -404,6 +470,7 @@ export default function ProfilePage() {
         </Tabs>
       </div>
 
+      {/* Modal for password reset confirmation */}
       <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -415,7 +482,7 @@ export default function ProfilePage() {
             <DialogTitle className="text-center text-xl">Correo Enviado</DialogTitle>
             <DialogDescription className="text-center space-y-2 pt-2">
               <p>Se ha enviado un enlace de restablecimiento de contraseña a:</p>
-              <p className="font-medium text-foreground">{user?.email}</p>
+              <p className="font-medium text-foreground">{userData.email}</p>
               <p className="text-sm pt-2">
                 Por favor revisa tu bandeja de entrada y sigue las instrucciones para actualizar tu contraseña.
               </p>
