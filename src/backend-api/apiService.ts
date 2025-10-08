@@ -76,7 +76,26 @@ export async function getAdminUser(id: string) {
 }
 
 export async function getPhysicianByAdminUserId(adminUserId: string) {
-  // TODO: returns PhysicianRes
+  const { data, error } = await supabase
+    .from("physicians")
+    .select("*")
+    .eq("admin_user_id", adminUserId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    adminUserId: data.admin_user_id,
+    nationalId: data.national_id,
+    licenseId: data.license_id,
+    specialty: data.specialty,
+    public_email: data.public_email,
+    phone_number: data.phone_number,
+    notes: data.notes ?? undefined,
+    createdAt: new Date(data.created_at),
+  };
 }
 
 export async function getPhysicianById(physicianId: number) {
