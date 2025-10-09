@@ -32,12 +32,6 @@ export function useUser(): UseUserReturn {
     }
   }, [pathname, publicRoutes, router]);
 
-  const redirectToSetupUser = useCallback(() => {
-    if (pathname !== "/auth/setup-user") {
-      router.push("/auth/setup-user");
-    }
-  }, [pathname, router]);
-
   const fetchUserData = useCallback(
     async (sessionUser: User) => {
       try {
@@ -46,7 +40,10 @@ export function useUser(): UseUserReturn {
           setUserData(adminUser);
         } else {
           setUserData(null);
-          redirectToSetupUser();
+          const allowedNoAdminRoutes = ["/auth/welcome-new-user", "/auth/setup-user"];
+          if (!allowedNoAdminRoutes.includes(pathname)) {
+            router.push("/auth/welcome-new-user");
+          }
         }
       } catch (err) {
         if (err instanceof PostgrestError) {
@@ -58,7 +55,7 @@ export function useUser(): UseUserReturn {
         setUserData(null);
       }
     },
-    [redirectToSetupUser],
+    [pathname, router],
   );
 
   const checkUser = useCallback(async () => {

@@ -61,7 +61,7 @@ export default function PerfilPage() {
     physicianId: undefined as number | undefined,
   })
 
-  // 🔁 Reverse map para guardar en inglés
+  // Reverse map para guardar con los terminos de type de supabase
   const reverseSpecialtyMap = Object.fromEntries(
     Object.entries(medicalSpecialtyMap).map(([en, es]) => [es, en])
   )
@@ -106,7 +106,7 @@ export default function PerfilPage() {
     loadProfile()
   }, [])
 
-  // 💾 Guardar cambios en Supabase
+  // Guardar cambios en Supabase
   const handleSave = async () => {
     try {
       if (!userData.physicianId) {
@@ -124,7 +124,7 @@ export default function PerfilPage() {
 
       await updatePhysician(userData.physicianId, updates)
       setIsEditing(false)
-      alert("Perfil actualizado correctamente ✅")
+      alert("Perfil actualizado correctamente")
     } catch (err) {
       console.error("Error guardando perfil:", err)
       alert("Error al guardar los cambios. Revisa la consola.")

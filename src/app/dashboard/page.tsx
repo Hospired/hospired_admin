@@ -15,15 +15,8 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { useUser } from "@/hooks/use-user";
 
 export default function DashboardPage() {
-  const { isLoading, userData } = useUser();
-
-  if (isLoading) return <p>Cargando...</p>;
-
-  if (userData == null) return <p>Redirigiendo...</p>; // Será redirigido por el hook
-
   return (
     <>
       <div className="space-y-6">

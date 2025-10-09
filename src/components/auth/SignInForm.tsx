@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CircularProgress } from "@mui/material"
 
 const schema = zod.object({
   email: zod.string().min(1, { message: "El correo es requerido" }).email(),
@@ -50,7 +51,6 @@ export function SignInForm({
       setIsPending(true)
       try {
         await signInUser(values.email, values.password)
-        router.replace("/dashboard")
       } catch (error) {
         if (error instanceof AuthError) {
           setError("root", { type: "server", message: error.message })
@@ -128,8 +128,15 @@ export function SignInForm({
 
         {/* Submit */}
         <Field>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Ingresando..." : "Ingresar"}
+          <Button type="submit" disabled={isPending} className="flex items-center justify-center gap-2">
+            {isPending ?(
+              <>
+                <CircularProgress size={20} color="inherit" />
+                <span>Verificando...</span>
+              </>
+            ): (
+              "Ingresar"
+            )}
           </Button>
         </Field>
 
