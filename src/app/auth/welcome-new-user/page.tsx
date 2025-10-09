@@ -3,9 +3,14 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Sparkles, ArrowRight } from "lucide-react"
+import { useUser } from "@/hooks/use-user"
 
 export default function WelcomePage() {
   const router = useRouter()
+  const { user, userData, isRedirecting, isLoading } = useUser();
+
+  if (isLoading || isRedirecting) return null;
+
 
   const handleRedirect = () => {
     router.push("/auth/setup-user")

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createAdminUser, getAuthUser, createPhysician } from "@/backend-api/apiService";
 import { medicalSpecialtyMap } from "@/backend-api/dtos";
 import { SelectTrigger, Select, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useUser } from "@/hooks/use-user";
 // UI Components
 import {
   Card,
@@ -37,6 +38,10 @@ import {
 
 export default function AdminUserForm() {
   const router = useRouter();
+  const { user, userData, isRedirecting, isLoading } = useUser();
+  
+  if (isLoading || isRedirecting) return null;
+
   const [inputValues, setInputValues] = useState<
     Omit<CreateAdminUserReq, "id" | "avatar">
   >({
