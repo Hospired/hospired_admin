@@ -2,35 +2,72 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save, User, Phone, FileText } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ArrowLeft, Save, User, FileText, Lock, Upload, CheckCircle2, Mail } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function NuevoPacientePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string>("")
+  const [generatedPassword, setGeneratedPassword] = useState<string>("")
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [patientEmail, setPatientEmail] = useState("")
+
+  useEffect(() => {
+    const generatePassword = () => {
+      const length = 12
+      const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+      let password = ""
+      for (let i = 0; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length))
+      }
+      return password
+    }
+    setGeneratedPassword(generatePassword())
+  }, [])
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
+    const formData = new FormData(e.target as HTMLFormElement)
+    const email = formData.get("email") as string
+    setPatientEmail(email)
+
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     setIsLoading(false)
+    setShowSuccessModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false)
     router.push("/dashboard/pacientes")
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/pacientes">
           <Button variant="outline" size="icon">
@@ -44,254 +81,151 @@ export default function NuevoPacientePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Personal Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              Autenticación
+            </CardTitle>
+            <CardDescription>Credenciales de acceso al sistema</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo Electrónico *</Label>
+                <Input id="email" name="email" type="email" placeholder="paciente@email.com" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña (Generada Automáticamente) *</Label>
+                <Input id="password" type="text" value={generatedPassword} readOnly className="font-mono bg-muted" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Información Personal
+              Información de Usuario
             </CardTitle>
-            <CardDescription>Datos básicos del paciente</CardDescription>
+            <CardDescription>Datos personales del usuario</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={avatarPreview || "/placeholder.svg"} alt="Avatar del paciente" />
+                <AvatarFallback>
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              </Avatar>
               <div className="space-y-2">
-                <Label htmlFor="firstName">Nombres *</Label>
-                <Input id="firstName" placeholder="Nombres del paciente" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Apellidos *</Label>
-                <Input id="lastName" placeholder="Apellidos del paciente" required />
+                <Label htmlFor="avatar">Avatar</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="cursor-pointer"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => document.getElementById("avatar")?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="birthDate">Fecha de Nacimiento *</Label>
-                <Input id="birthDate" type="date" required />
+                <Label htmlFor="firstName">Primer Nombre *</Label>
+                <Input id="firstName" placeholder="Primer nombre" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gender">Género *</Label>
-                <Select required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar género" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="femenino">Femenino</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="secondName">Segundo Nombre</Label>
+                <Input id="secondName" placeholder="Segundo nombre" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstSurname">Primer Apellido *</Label>
+                <Input id="firstSurname" placeholder="Primer apellido" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="civilStatus">Estado Civil</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Estado civil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="soltero">Soltero/a</SelectItem>
-                    <SelectItem value="casado">Casado/a</SelectItem>
-                    <SelectItem value="divorciado">Divorciado/a</SelectItem>
-                    <SelectItem value="viudo">Viudo/a</SelectItem>
-                    <SelectItem value="union-libre">Unión Libre</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="secondSurname">Segundo Apellido</Label>
+                <Input id="secondSurname" placeholder="Segundo apellido" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="identification">Cédula de Identidad *</Label>
-              <Input id="identification" placeholder="000-000000-0000X" required />
+              <Label htmlFor="birthDate">Fecha de Nacimiento *</Label>
+              <Input id="birthDate" type="date"/>
             </div>
           </CardContent>
         </Card>
 
-        {/* Contact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-primary" />
-              Información de Contacto
-            </CardTitle>
-            <CardDescription>Datos de contacto y ubicación</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono Principal *</Label>
-                <Input id="phone" placeholder="+505 0000-0000" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="alternatePhone">Teléfono Alternativo</Label>
-                <Input id="alternatePhone" placeholder="+505 0000-0000" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
-              <Input id="email" type="email" placeholder="paciente@email.com" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Dirección Completa *</Label>
-              <Textarea
-                id="address"
-                placeholder="Dirección completa del paciente..."
-                className="min-h-[80px]"
-                required
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="city">Ciudad</Label>
-                <Input id="city" placeholder="Ciudad" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Departamento</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar departamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="managua">Managua</SelectItem>
-                    <SelectItem value="leon">León</SelectItem>
-                    <SelectItem value="granada">Granada</SelectItem>
-                    <SelectItem value="masaya">Masaya</SelectItem>
-                    <SelectItem value="chinandega">Chinandega</SelectItem>
-                    <SelectItem value="esteli">Estelí</SelectItem>
-                    <SelectItem value="matagalpa">Matagalpa</SelectItem>
-                    <SelectItem value="jinotega">Jinotega</SelectItem>
-                    <SelectItem value="nueva-segovia">Nueva Segovia</SelectItem>
-                    <SelectItem value="madriz">Madriz</SelectItem>
-                    <SelectItem value="boaco">Boaco</SelectItem>
-                    <SelectItem value="chontales">Chontales</SelectItem>
-                    <SelectItem value="rio-san-juan">Río San Juan</SelectItem>
-                    <SelectItem value="raan">RAAN</SelectItem>
-                    <SelectItem value="raas">RAAS</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Emergency Contact */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-primary" />
-              Contacto de Emergencia
-            </CardTitle>
-            <CardDescription>Persona a contactar en caso de emergencia</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="emergencyName">Nombre Completo *</Label>
-                <Input id="emergencyName" placeholder="Nombre del contacto de emergencia" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="emergencyRelation">Parentesco *</Label>
-                <Select required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar parentesco" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="padre">Padre</SelectItem>
-                    <SelectItem value="madre">Madre</SelectItem>
-                    <SelectItem value="esposo">Esposo/a</SelectItem>
-                    <SelectItem value="hijo">Hijo/a</SelectItem>
-                    <SelectItem value="hermano">Hermano/a</SelectItem>
-                    <SelectItem value="abuelo">Abuelo/a</SelectItem>
-                    <SelectItem value="tio">Tío/a</SelectItem>
-                    <SelectItem value="primo">Primo/a</SelectItem>
-                    <SelectItem value="amigo">Amigo/a</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="emergencyPhone">Teléfono *</Label>
-                <Input id="emergencyPhone" placeholder="+505 0000-0000" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="emergencyEmail">Correo Electrónico</Label>
-                <Input id="emergencyEmail" type="email" placeholder="contacto@email.com" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Medical Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Información Médica Inicial
+              Información del Paciente
             </CardTitle>
-            <CardDescription>Datos médicos básicos del paciente</CardDescription>
+            <CardDescription>Datos específicos del paciente</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="bloodType">Tipo de Sangre</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tipo de sangre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a+">A+</SelectItem>
-                    <SelectItem value="a-">A-</SelectItem>
-                    <SelectItem value="b+">B+</SelectItem>
-                    <SelectItem value="b-">B-</SelectItem>
-                    <SelectItem value="ab+">AB+</SelectItem>
-                    <SelectItem value="ab-">AB-</SelectItem>
-                    <SelectItem value="o+">O+</SelectItem>
-                    <SelectItem value="o-">O-</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="nationality">No de Cedula</Label>
+                <Input id="national.id" placeholder="Número de Cedula" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="weight">Peso (kg)</Label>
-                <Input id="weight" type="number" placeholder="70" />
+                <Label htmlFor="inss">INSS *</Label>
+                <Input id="inss" placeholder="Número de INSS"/>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Número Telefónico *</Label>
+                <Input id="phone" placeholder="+505 0000-0000"/>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="height">Altura (cm)</Label>
-                <Input id="height" type="number" placeholder="170" />
+                <Label htmlFor="occupation">Ocupación</Label>
+                <Input id="occupation" placeholder="Ocupación del paciente" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="allergies">Alergias Conocidas</Label>
-              <Textarea id="allergies" placeholder="Describe cualquier alergia conocida..." className="min-h-[80px]" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="medications">Medicamentos Actuales</Label>
+              <Label htmlFor="address">Dirección *</Label>
               <Textarea
-                id="medications"
-                placeholder="Lista de medicamentos que toma actualmente..."
+                id="address"
+                placeholder="Dirección completa del paciente..."
                 className="min-h-[80px]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="medicalHistory">Antecedentes Médicos</Label>
+              <Label htmlFor="location">Municipio, Departamento *</Label>
+              <Input id="location" placeholder="Ej: Managua, Managua" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="medicalNotes">Notas Médicas</Label>
               <Textarea
-                id="medicalHistory"
-                placeholder="Historial médico relevante, cirugías previas, enfermedades crónicas..."
+                id="medicalNotes"
+                placeholder="Notas médicas relevantes del paciente..."
                 className="min-h-[100px]"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-end gap-4">
           <Link href="/dashboard/pacientes">
             <Button variant="outline">Cancelar</Button>
@@ -302,6 +236,35 @@ export default function NuevoPacientePage() {
           </Button>
         </div>
       </form>
+
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="rounded-full bg-green-100 p-3">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl">Paciente Guardado Exitosamente</DialogTitle>
+            <DialogDescription className="text-center space-y-4 pt-4">
+              <p className="text-base">El paciente ha sido registrado correctamente en el sistema.</p>
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Mail className="h-5 w-5" />
+                <p className="text-sm">
+                  Se ha enviado un correo electrónico a{" "}
+                  <span className="font-semibold text-foreground">{patientEmail}</span> para que el paciente pueda
+                  cambiar su contraseña desde la aplicación móvil.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleCloseModal} className="w-full sm:w-auto">
+              Entendido
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
