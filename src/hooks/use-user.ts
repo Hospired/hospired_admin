@@ -12,7 +12,6 @@ interface UseUserReturn {
   user: User | null;
   userData: AdminUserRes | null;
   isLoading: boolean;
-  isRedirecting: boolean;
   error: string | null;
 }
 
@@ -22,7 +21,6 @@ export function useUser(): UseUserReturn {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<AdminUserRes | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // rutas que NO necesitan sesión
@@ -39,18 +37,11 @@ export function useUser(): UseUserReturn {
       try {
         const adminUser = await getAdminUser(sessionUser.id);
         if (adminUser) {
-          const restrictedForAdmins = ["/auth/welcome-new-user", "/auth/setup-user"];
-          if (restrictedForAdmins.includes(pathname)) {
-            setIsRedirecting(true);
-            router.push("/dashboard"); 
-            return;
-          }
           setUserData(adminUser);
         } else {
           setUserData(null);
           const allowedNoAdminRoutes = ["/auth/welcome-new-user", "/auth/setup-user"];
           if (!allowedNoAdminRoutes.includes(pathname)) {
-            setIsRedirecting(true);
             router.push("/auth/welcome-new-user");
           }
         }
@@ -116,5 +107,5 @@ export function useUser(): UseUserReturn {
     };
   }, [checkUser, fetchUserData, redirectToSignIn]);
 
-  return { user, userData, isLoading, isRedirecting, error };
+  return { user, userData, isLoading, error };
 }

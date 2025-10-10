@@ -38,10 +38,7 @@ import {
 
 export default function AdminUserForm() {
   const router = useRouter();
-  const { user, userData, isRedirecting, isLoading } = useUser();
   
-  if (isLoading || isRedirecting) return null;
-
   const [inputValues, setInputValues] = useState<
     Omit<CreateAdminUserReq, "id" | "avatar">
   >({
