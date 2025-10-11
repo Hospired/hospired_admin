@@ -288,7 +288,7 @@ export async function getPatientByAppUserId(appUserId: string): Promise<PatientR
   };
 }
 
-export async function getAllPatients(): Promise<PatientRes[]> {
+export async function getAllPatients() {
   const { data, error } = await supabase
     .from("patients")
     .select(`
@@ -306,7 +306,8 @@ export async function getAllPatients(): Promise<PatientRes[]> {
         first_name,
         second_name,
         first_last_name,
-        second_last_name
+        second_last_name,
+        date_of_birth
       )
     `)
     .order("created_at", { ascending: false });
@@ -315,15 +316,20 @@ export async function getAllPatients(): Promise<PatientRes[]> {
 
   return data.map((p: any) => ({
     id: p.id,
-    appUserId: p.app_users.id,
+    appUserId: p.app_users?.id,
     nationalId: p.national_id ?? "",
     inss: p.inss_id ?? 0,
     phone: p.phone_number ?? "",
     occupation: p.occupation ?? "",
     address: p.neighborhood ?? "",
-    municipalityId: p.municipality_id ?? "",
+    municipalityId: p.municipality_id ?? 0,
     medicalNotes: p.medical_notes ?? "",
     createdAt: new Date(p.created_at),
-    fullName: `${p.app_users.first_name} ${p.app_users.second_name ?? ""} ${p.app_users.first_last_name} ${p.app_users.second_last_name ?? ""}`.trim(),
+    fullName: `${p.app_users?.first_name ?? ""} ${p.app_users?.second_name ?? ""} ${
+      p.app_users?.first_last_name ?? ""
+    } ${p.app_users?.second_last_name ?? ""}`.trim(),
+    dateOfBirth: p.app_users?.date_of_birth
+      ? new Date(p.app_users.date_of_birth)
+      : undefined,
   }));
 }

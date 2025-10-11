@@ -2,72 +2,45 @@
 
 import { useEffect, useState } from "react";
 import { getAllPatients } from "@/backend-api/apiService";
-import { PatientRes } from "@/backend-api/dtos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Loader2, PlusCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useUser } from "@/hooks/use-user";
 
-// Tipo local adaptado
-type TablePatient = {
+// Tipo real del dato que devuelve getAllPatients
+type PatientWithUser = {
   id: number;
-  nombreCompleto: string;
-  edad: number | null;
-  telefono: string;
-  cedula: string;
-  ocupacion: string;
-  municipio: string;
-  inss: string;
-  direccion: string;
-  notasMedicas: string;
+  appUserId: string;
+  nationalId: string;
+  inss: number;
+  phone: string;
+  occupation?: string;
+  address: string;
+  municipalityId: number;
+  medicalNotes?: string;
+  createdAt: Date;
+  fullName: string;
+  dateOfBirth?: Date;
 };
 
 export default function PacientesPage() {
-  const [patients, setPatients] = useState<TablePatient[]>([]);
+  const [patients, setPatients] = useState<PatientWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, userData, isLoading } = useUser();
 
   useEffect(() => {
     async function fetchPatients() {
       try {
-        const data = await getAllPatients();
-
-        // ⚙️ Mapeo: construimos nombre completo desde el objeto anidado app_users
-        const mapped = data.map((p: any) => {
-          const user = p.app_users || {};
-          const fullName = [
-            userData?.firstName,
-            user.secondName,
-            user.firstSurname,
-            user.secondSurname,
-          ]
-            .filter(Boolean)
-            .join(" ");
-
-          const edad = user.dateOfBirth
-            ? Math.floor(
-                (Date.now() - new Date(user.dateOfBirth).getTime()) / 31557600000
-              )
-            : null;
-
-          return {
-            id: p.id,
-            nombreCompleto: fullName || "—",
-            edad,
-            telefono: p.phone ?? "—",
-            cedula: p.nationalId ?? "—",
-            ocupacion: p.occupation ?? "—",
-            municipio: p.municipalityId?.toString() ?? "—",
-            inss: p.inss?.toString() ?? "—",
-            direccion: p.address ?? "—",
-            notasMedicas: p.medicalNotes ?? "—",
-          };
-        });
-
-        setPatients(mapped);
+        const data = await getAllPatients()
+          setPatients(data);
       } catch (err: any) {
         console.error("Error cargando pacientes:", err);
         setError(err.message);
@@ -78,6 +51,12 @@ export default function PacientesPage() {
 
     fetchPatients();
   }, []);
+
+  const calcularEdad = (fechaNacimiento?: Date) => {
+    if (!fechaNacimiento) return "—";
+    const diff = Date.now() - fechaNacimiento.getTime();
+    return Math.floor(diff / 31557600000); // años
+  };
 
   if (loading) {
     return (
@@ -142,16 +121,16 @@ export default function PacientesPage() {
                   {patients.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.id}</TableCell>
-                      <TableCell>{p.nombreCompleto}</TableCell>
-                      <TableCell>{p.edad ?? "—"}</TableCell>
-                      <TableCell>{p.telefono}</TableCell>
-                      <TableCell>{p.cedula}</TableCell>
-                      <TableCell>{p.ocupacion}</TableCell>
-                      <TableCell>{p.municipio}</TableCell>
+                      <TableCell>{p.fullName}</TableCell>
+                      <TableCell>{calcularEdad(p.dateOfBirth)}</TableCell>
+                      <TableCell>{p.phone || "—"}</TableCell>
+                      <TableCell>{p.nationalId || "—"}</TableCell>
+                      <TableCell>{p.occupation || "—"}</TableCell>
+                      <TableCell>{p.municipalityId}</TableCell>
                       <TableCell>{p.inss}</TableCell>
-                      <TableCell>{p.direccion}</TableCell>
+                      <TableCell>{p.address || "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate">
-                        {p.notasMedicas}
+                        {p.medicalNotes || "—"}
                       </TableCell>
                     </TableRow>
                   ))}
