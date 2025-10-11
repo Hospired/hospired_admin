@@ -1,21 +1,9 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { getAllPatients } from "@/backend-api/apiService";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, AlertCircle } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { getAllPatients } from "@/backend-api/apiService"
 
-// Tipo real del dato que devuelve getAllPatients
 type PatientWithUser = {
   id: number;
   appUserId: string;
@@ -31,115 +19,303 @@ type PatientWithUser = {
   dateOfBirth?: Date;
 };
 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { ArrowUpDown, Eye, Edit, MoreHorizontal, Plus, Trash2, User, Phone, Briefcase, ClipboardList } from "lucide-react"
+
+type SortConfig = {
+  key: keyof PatientWithUser | null
+  direction: "asc" | "desc"
+}
+
 export default function PacientesPage() {
-  const [patients, setPatients] = useState<PatientWithUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [patients, setPatients] = useState<PatientWithUser[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: "asc" })
+  const [selectedPatient, setSelectedPatient] = useState<PatientWithUser | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [deletingPatient, setDeletingPatient] = useState<PatientWithUser | null>(null)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
   useEffect(() => {
-    async function fetchPatients() {
-      try {
-        const data = await getAllPatients()
-          setPatients(data);
-      } catch (err: any) {
-        console.error("Error cargando pacientes:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+    const fetchPatients = async () => {
+      const data = await getAllPatients()
+      setPatients(data)
     }
+    fetchPatients()
+  }, [])
 
-    fetchPatients();
-  }, []);
-
-  const calcularEdad = (fechaNacimiento?: Date) => {
-    if (!fechaNacimiento) return "—";
-    const diff = Date.now() - fechaNacimiento.getTime();
-    return Math.floor(diff / 31557600000); // años
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        Cargando pacientes...
-      </div>
-    );
+  const calculateAge = (dateString?: Date) => {
+    if (!dateString) return "N/D"
+    const birth = new Date(dateString)
+    const diff = Date.now() - birth.getTime()
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 text-center text-red-600">
-        <AlertCircle className="h-6 w-6 mb-2" />
-        <p>Error al cargar los pacientes:</p>
-        <p className="font-medium">{error}</p>
-      </div>
-    );
+  const handleSort = (key: keyof PatientWithUser) => {
+    let direction: "asc" | "desc" = "asc"
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc"
+    setSortConfig({ key, direction })
+  }
+
+  const filteredPatients = patients
+    .filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.nationalId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.occupation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortConfig.key) return 0
+      const aValue = a[sortConfig.key]
+      const bValue = b[sortConfig.key]
+      if (aValue! < bValue!) return sortConfig.direction === "asc" ? -1 : 1
+      if (aValue! > bValue!) return sortConfig.direction === "asc" ? 1 : -1
+      return 0
+    })
+
+  const handleViewDetails = (p: PatientWithUser) => {
+    setSelectedPatient(p)
+    setIsDetailOpen(true)
+  }
+
+  const handleDelete = (p: PatientWithUser) => {
+    setDeletingPatient(p)
+    setIsDeleteOpen(true)
+  }
+
+  const confirmDelete = () => {
+    console.log("Deleting:", deletingPatient?.id)
+    setIsDeleteOpen(false)
+  }
+
+  const handleEdit = (p: PatientWithUser) => {
+    console.log("Editar paciente:", p.id, p.fullName)
+    window.location.href = `/dashboard/pacientes/editar/${p.id}`
   }
 
   return (
-    <div className="container mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Pacientes</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Gestión de Pacientes</h1>
+          <p className="text-muted-foreground">Administra la información de todos los pacientes registrados.</p>
+        </div>
         <Link href="/dashboard/pacientes/nuevo">
-          <Button className="flex items-center gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Nuevo Paciente
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" /> Nuevo Paciente
           </Button>
         </Link>
       </div>
 
-      <Card className="shadow-sm border border-border">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
-            Lista de Pacientes Registrados
-          </CardTitle>
+          <CardTitle>Buscar Pacientes</CardTitle>
+          <CardDescription>Filtra por nombre, cédula o dirección</CardDescription>
         </CardHeader>
         <CardContent>
-          {patients.length === 0 ? (
-            <p className="text-muted-foreground text-center py-6">
-              No hay pacientes registrados todavía.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nombre Completo</TableHead>
-                    <TableHead>Edad</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead>Cédula</TableHead>
-                    <TableHead>Ocupación</TableHead>
-                    <TableHead>Municipio</TableHead>
-                    <TableHead>INSS</TableHead>
-                    <TableHead>Dirección</TableHead>
-                    <TableHead>Notas Médicas</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {patients.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.id}</TableCell>
-                      <TableCell>{p.fullName}</TableCell>
-                      <TableCell>{calcularEdad(p.dateOfBirth)}</TableCell>
-                      <TableCell>{p.phone || "—"}</TableCell>
-                      <TableCell>{p.nationalId || "—"}</TableCell>
-                      <TableCell>{p.occupation || "—"}</TableCell>
-                      <TableCell>{p.municipalityId}</TableCell>
-                      <TableCell>{p.inss}</TableCell>
-                      <TableCell>{p.address || "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {p.medicalNotes || "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Pacientes ({filteredPatients.length})</CardTitle>
+          <CardDescription>Visualiza y gestiona pacientes registrados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => handleSort("id")} className="h-auto p-0 font-semibold hover:bg-transparent">
+                      ID
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => handleSort("fullName")} className="h-auto p-0 font-semibold hover:bg-transparent">
+                      Nombre Completo
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>Edad</TableHead>
+                  <TableHead>Cédula</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead>Ocupación</TableHead>
+                  <TableHead>Dirección</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {filteredPatients.map((p) => (
+                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(p)}>
+                    <TableCell className="font-medium">{p.id}</TableCell>
+                    <TableCell>{p.fullName}</TableCell>
+                    <TableCell>{calculateAge(p.dateOfBirth)}</TableCell>
+                    <TableCell>{p.nationalId}</TableCell>
+                    <TableCell>{p.phone}</TableCell>
+                    <TableCell>{p.occupation}</TableCell>
+                    <TableCell>{p.address}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(p) }}>
+                            <Eye className="mr-2 h-4 w-4" /> Ver Perfil
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(p) }}>
+                            <Edit className="mr-2 h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(p) }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sheet de detalles */}
+      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-2xl">Perfil del Paciente</SheetTitle>
+            <SheetDescription>Información detallada del paciente</SheetDescription>
+          </SheetHeader>
+
+          {selectedPatient && (
+            <div className="mt-6 space-y-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                      <User className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold">{selectedPatient.fullName}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedPatient.nationalId}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Edad: {calculateAge(selectedPatient.dateOfBirth)} años
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Phone className="h-5 w-5" /> Contacto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p><strong>Teléfono:</strong> {selectedPatient.phone}</p>
+                  <p><strong>Dirección:</strong> {selectedPatient.address}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Briefcase className="h-5 w-5" /> Ocupación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>{selectedPatient.occupation}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ClipboardList className="h-5 w-5" /> Notas Médicas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed">
+                    {selectedPatient.medicalNotes || "Sin notas registradas."}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Diálogo de eliminación */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar paciente</DialogTitle>
+            <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
+          </DialogHeader>
+          {deletingPatient && (
+            <div className="py-4">
+              <p><strong>{deletingPatient.fullName}</strong></p>
+              <p className="text-sm text-muted-foreground">{deletingPatient.nationalId}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }
