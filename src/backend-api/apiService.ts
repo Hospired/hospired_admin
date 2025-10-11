@@ -287,3 +287,43 @@ export async function getPatientByAppUserId(appUserId: string): Promise<PatientR
     createdAt: new Date(data.created_at),
   };
 }
+
+export async function getAllPatients(): Promise<PatientRes[]> {
+  const { data, error } = await supabase
+    .from("patients")
+    .select(`
+      id,
+      national_id,
+      inss_id,
+      phone_number,
+      occupation,
+      neighborhood,
+      municipality_id,
+      medical_notes,
+      created_at,
+      app_users (
+        id,
+        first_name,
+        second_name,
+        first_last_name,
+        second_last_name
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener pacientes: ${error.message}`);
+
+  return data.map((p: any) => ({
+    id: p.id,
+    appUserId: p.app_users.id,
+    nationalId: p.national_id ?? "",
+    inss: p.inss_id ?? 0,
+    phone: p.phone_number ?? "",
+    occupation: p.occupation ?? "",
+    address: p.neighborhood ?? "",
+    municipalityId: p.municipality_id ?? "",
+    medicalNotes: p.medical_notes ?? "",
+    createdAt: new Date(p.created_at),
+    fullName: `${p.app_users.first_name} ${p.app_users.second_name ?? ""} ${p.app_users.first_last_name} ${p.app_users.second_last_name ?? ""}`.trim(),
+  }));
+}

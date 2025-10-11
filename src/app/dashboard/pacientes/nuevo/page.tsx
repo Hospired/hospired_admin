@@ -120,11 +120,11 @@ export default function NuevoPacientePage() {
 
       setPatientEmail(email)
 
-      // 1️⃣ Crear usuario de autenticación
+      // Crear usuario de autenticación
       const { user } = await signUpUser(email, generatedPassword)
       if (!user) throw new Error("No se pudo crear el usuario de autenticación")
 
-      // 2️⃣ Crear registro en AppUser
+      // Crear registro en AppUser
       await createAppUser({
         id: user.id,
         firstName,
@@ -135,7 +135,7 @@ export default function NuevoPacientePage() {
         avatar: avatarPreview || undefined,
       })
 
-      // 3️⃣ Crear registro en Patient
+      // Crear registro en Patient
         await createPatient({
           appUserId: user.id,
           nationalId: nationalId || "", // <-- asegura string

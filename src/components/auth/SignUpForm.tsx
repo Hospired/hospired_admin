@@ -8,7 +8,6 @@ import { z as zod } from "zod";
 import { AuthError } from "@supabase/supabase-js";
 import { signUpUser } from "@/backend-api/apiService";
 
-// ⚡️ Aquí tus componentes de UI tipo shadcn
 import {
   FieldGroup,
   Field,
