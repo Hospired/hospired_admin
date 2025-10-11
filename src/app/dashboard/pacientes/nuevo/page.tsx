@@ -26,8 +26,14 @@ import {
   CheckCircle2,
   Mail,
 } from "lucide-react"
+import { signUpUser, createAppUser, createPatient, getMunicipalities } from "@/backend-api/apiService"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import { signUpUser, createAppUser, createPatient } from "@/backend-api/apiService"
+type Municipality = {
+  id: number
+  name: string
+  department: string
+}
 
 type PatientForm = {
   email: string
@@ -41,7 +47,7 @@ type PatientForm = {
   phone?: string
   occupation?: string
   address: string
-  location?: string
+  municipalityId?: number
   medicalNotes?: string
   avatar?: string
 }
@@ -60,7 +66,7 @@ export default function NuevoPacientePage() {
     phone: "",
     occupation: "",
     address: "",
-    location: "",
+    municipalityId: undefined,
     medicalNotes: "",
     avatar: "",
   })
@@ -70,14 +76,28 @@ export default function NuevoPacientePage() {
   const [generatedPassword, setGeneratedPassword] = useState<string>("")
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [patientEmail, setPatientEmail] = useState("")
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([])
 
+  // 🔹 Generar contraseña aleatoria una sola vez
   useEffect(() => {
-    // Generar contraseña aleatoria al cargar
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
     const password = Array.from({ length: 12 })
       .map(() => charset.charAt(Math.floor(Math.random() * charset.length)))
       .join("")
     setGeneratedPassword(password)
+  }, [])
+
+  // 🔹 Cargar municipios desde la base de datos
+  useEffect(() => {
+    const loadMunicipalities = async () => {
+      try {
+        const data = await getMunicipalities()
+        setMunicipalities(data)
+      } catch (error) {
+        console.error("Error al cargar municipios:", error)
+      }
+    }
+    loadMunicipalities()
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -115,16 +135,23 @@ export default function NuevoPacientePage() {
         phone,
         occupation,
         address,
+        municipalityId,
         medicalNotes,
       } = formData
 
+      if (!municipalityId) {
+        alert("Por favor, selecciona un municipio.")
+        setIsLoading(false)
+        return
+      }
+
       setPatientEmail(email)
 
-      // Crear usuario de autenticación
+      // 🔹 Crear usuario de autenticación
       const { user } = await signUpUser(email, generatedPassword)
       if (!user) throw new Error("No se pudo crear el usuario de autenticación")
 
-      // Crear registro en AppUser
+      // 🔹 Crear registro en AppUser
       await createAppUser({
         id: user.id,
         firstName,
@@ -135,18 +162,17 @@ export default function NuevoPacientePage() {
         avatar: avatarPreview || undefined,
       })
 
-      // Crear registro en Patient
-        await createPatient({
-          appUserId: user.id,
-          nationalId: nationalId || "", // <-- asegura string
-          inss: inss ? Number(inss) : 0, // <-- asegura number
-          phone: phone || "",
-          occupation: occupation || "",
-          address: address || "",
-          municipalityId: 1, // podrías reemplazar con la real si luego la manejas por dropdown
-          medicalNotes: medicalNotes || "",
-        });
-
+      // 🔹 Crear registro en Patient
+      await createPatient({
+        appUserId: user.id,
+        nationalId: nationalId || "",
+        inss: inss ? Number(inss) : 0,
+        phone: phone || "",
+        occupation: occupation || "",
+        address: address || "",
+        municipalityId,
+        medicalNotes: medicalNotes || "",
+      })
 
       setShowSuccessModal(true)
     } catch (error: any) {
@@ -220,25 +246,10 @@ export default function NuevoPacientePage() {
               </Avatar>
               <div className="space-y-2">
                 <Label htmlFor="avatar">Avatar</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="avatar"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Input id="avatar" type="file" accept="image/*" onChange={handleAvatarChange} />
               </div>
             </div>
 
-            {/* Datos personales */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Primer Nombre *</Label>
@@ -285,36 +296,47 @@ export default function NuevoPacientePage() {
                 <Input id="inss" value={formData.inss} onChange={handleChange} />
               </div>
             </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono *</Label>
-                  <Input id="phone" value={formData.phone} onChange={handleChange} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="occupation">Ocupación</Label>
-                  <Input id="occupation" value={formData.occupation} onChange={handleChange} />
-                </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono *</Label>
+                <Input id="phone" value={formData.phone} onChange={handleChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="occupation">Ocupación</Label>
+                <Input id="occupation" value={formData.occupation} onChange={handleChange} />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address">Dirección *</Label>
-              <Textarea 
-                id="address" 
-                value={formData.address} 
-                onChange={handleChange} />
+              <Textarea id="address" value={formData.address} onChange={handleChange} />
             </div>
 
+            {/* 🔹 Municipio Dropdown */}
             <div className="space-y-2">
-              <Label htmlFor="location">Municipio, Departamento *</Label>
-              <Input id="location" value={formData.location} onChange={handleChange} />
+              <Label htmlFor="municipalityId">Municipio *</Label>
+              <Select
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, municipalityId: Number(value) }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un municipio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {municipalities.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name} ({m.department})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="medicalNotes">Notas Médicas</Label>
-              <Textarea 
-                id="medicalNotes"
-                value={formData.medicalNotes}
-                onChange={handleChange} />
+              <Textarea id="medicalNotes" value={formData.medicalNotes} onChange={handleChange} />
             </div>
           </CardContent>
         </Card>
@@ -343,14 +365,15 @@ export default function NuevoPacientePage() {
             <DialogTitle className="text-center text-2xl">
               Paciente Guardado Exitosamente
             </DialogTitle>
-            <DialogDescription className="text-center space-y-2 pt-4">
-              El paciente ha sido registrado correctamente.
-              <div className="flex justify-center gap-2 text-muted-foreground">
+              <DialogDescription className="text-center space-y-2 pt-4">
+                El paciente ha sido registrado correctamente.
+              </DialogDescription>
+
+              <div className="flex justify-center gap-2 text-muted-foreground mt-2">
                 <Mail className="h-5 w-5" />
-                  Se envió un correo a{" "}
-                  <span className="font-semibold text-foreground">{patientEmail}</span>.
+                Se envió un correo a{" "}
+                <span className="font-semibold text-foreground">{patientEmail}</span>.
               </div>
-            </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center mt-4">
             <Button onClick={handleCloseModal}>Entendido</Button>

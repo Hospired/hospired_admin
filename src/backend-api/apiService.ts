@@ -293,6 +293,7 @@ export async function getAllPatients() {
     .from("patients")
     .select(`
       id,
+      app_user_id,
       national_id,
       inss_id,
       phone_number,
@@ -308,13 +309,18 @@ export async function getAllPatients() {
         first_last_name,
         second_last_name,
         date_of_birth
+      ),
+      municipalities (
+        id,
+        name,
+        department
       )
     `)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Error al obtener pacientes: ${error.message}`);
 
-  return data.map((p: any) => ({
+  return (data ?? []).map((p: any) => ({
     id: p.id,
     appUserId: p.app_users?.id,
     nationalId: p.national_id ?? "",
@@ -323,13 +329,23 @@ export async function getAllPatients() {
     occupation: p.occupation ?? "",
     address: p.neighborhood ?? "",
     municipalityId: p.municipality_id ?? 0,
+    municipalityName: p.municipalities?.name ?? "",
+    department: p.municipalities?.department ?? "",
     medicalNotes: p.medical_notes ?? "",
     createdAt: new Date(p.created_at),
     fullName: `${p.app_users?.first_name ?? ""} ${p.app_users?.second_name ?? ""} ${
       p.app_users?.first_last_name ?? ""
     } ${p.app_users?.second_last_name ?? ""}`.trim(),
-    dateOfBirth: p.app_users?.date_of_birth
-      ? new Date(p.app_users.date_of_birth)
-      : undefined,
+    dateOfBirth: p.app_users?.date_of_birth ? new Date(p.app_users.date_of_birth) : undefined,
   }));
+}
+
+export async function getMunicipalities() {
+  const { data, error } = await supabase
+    .from("municipalities")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) throw new Error(`Error al obtener municipios: ${error.message}`);
+  return data ?? [];
 }

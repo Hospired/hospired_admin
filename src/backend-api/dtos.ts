@@ -112,3 +112,11 @@ export type PatientRes = {
   medicalNotes?: string;
   createdAt: Date;
 };
+
+/** Nuevo tipo para municipalities */
+export type Municipality = {
+  id: number;
+  name?: string;
+  department: string;
+  createdAt?: Date;
+};

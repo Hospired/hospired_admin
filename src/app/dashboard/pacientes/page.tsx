@@ -6,13 +6,15 @@ import { getAllPatients } from "@/backend-api/apiService"
 
 type PatientWithUser = {
   id: number;
-  appUserId: string;
+  appUserId?: string;
   nationalId: string;
   inss: number;
   phone: string;
   occupation?: string;
   address: string;
-  municipalityId: number;
+  municipalityId?: number;
+  municipalityName?: string;
+  department?: string;
   medicalNotes?: string;
   createdAt: Date;
   fullName: string;
@@ -70,15 +72,19 @@ export default function PacientesPage() {
 
   useEffect(() => {
     const fetchPatients = async () => {
-      const data = await getAllPatients()
-      setPatients(data)
+      try {
+        const data = await getAllPatients()
+        setPatients(data)
+      } catch (err) {
+        console.error("Error cargando pacientes:", err)
+      }
     }
     fetchPatients()
   }, [])
 
-  const calculateAge = (dateString?: Date) => {
-    if (!dateString) return "N/D"
-    const birth = new Date(dateString)
+  const calculateAge = (date?: Date) => {
+    if (!date) return "—"
+    const birth = new Date(date)
     const diff = Date.now() - birth.getTime()
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
   }
@@ -90,19 +96,23 @@ export default function PacientesPage() {
   }
 
   const filteredPatients = patients
-    .filter(
-      (p) =>
-        p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.nationalId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.occupation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter((p) =>
+      p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.nationalId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.occupation ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.address ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.municipalityName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.department ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (!sortConfig.key) return 0
-      const aValue = a[sortConfig.key]
-      const bValue = b[sortConfig.key]
-      if (aValue! < bValue!) return sortConfig.direction === "asc" ? -1 : 1
-      if (aValue! > bValue!) return sortConfig.direction === "asc" ? 1 : -1
+      const aValue = (a as any)[sortConfig.key]
+      const bValue = (b as any)[sortConfig.key]
+      if (aValue == null && bValue == null) return 0
+      if (aValue == null) return 1
+      if (bValue == null) return -1
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1
       return 0
     })
 
@@ -122,7 +132,6 @@ export default function PacientesPage() {
   }
 
   const handleEdit = (p: PatientWithUser) => {
-    console.log("Editar paciente:", p.id, p.fullName)
     window.location.href = `/dashboard/pacientes/editar/${p.id}`
   }
 
@@ -143,15 +152,11 @@ export default function PacientesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Buscar Pacientes</CardTitle>
-          <CardDescription>Filtra por nombre, cédula o dirección</CardDescription>
+          <CardDescription>Filtra por nombre, cédula, ocupación, municipio o departamento</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2">
-            <Input
-              placeholder="Buscar..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <Input placeholder="Buscar por nombre, cédula, municipio..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1" />
           </div>
         </CardContent>
       </Card>
@@ -173,7 +178,7 @@ export default function PacientesPage() {
                     </Button>
                   </TableHead>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => handleSort("fullName")} className="h-auto p-0 font-semibold hover:bg-transparent">
+                    <Button variant="ghost" onClick={() => handleSort("fullName" as any)} className="h-auto p-0 font-semibold hover:bg-transparent">
                       Nombre Completo
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
@@ -182,7 +187,8 @@ export default function PacientesPage() {
                   <TableHead>Cédula</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Ocupación</TableHead>
-                  <TableHead>Dirección</TableHead>
+                  <TableHead>Municipio</TableHead>
+                  <TableHead>Departamento</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -193,10 +199,11 @@ export default function PacientesPage() {
                     <TableCell className="font-medium">{p.id}</TableCell>
                     <TableCell>{p.fullName}</TableCell>
                     <TableCell>{calculateAge(p.dateOfBirth)}</TableCell>
-                    <TableCell>{p.nationalId}</TableCell>
-                    <TableCell>{p.phone}</TableCell>
-                    <TableCell>{p.occupation}</TableCell>
-                    <TableCell>{p.address}</TableCell>
+                    <TableCell className="font-mono">{p.nationalId || "—"}</TableCell>
+                    <TableCell>{p.phone || "—"}</TableCell>
+                    <TableCell>{p.occupation || "—"}</TableCell>
+                    <TableCell>{p.municipalityName || "—"}</TableCell>
+                    <TableCell>{p.department || "—"}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -213,10 +220,7 @@ export default function PacientesPage() {
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(p) }}
-                          >
+                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(p) }}>
                             <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -230,7 +234,7 @@ export default function PacientesPage() {
         </CardContent>
       </Card>
 
-      {/* Sheet de detalles */}
+      {/* Sheet detalle */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
@@ -249,9 +253,7 @@ export default function PacientesPage() {
                     <div>
                       <h3 className="text-2xl font-bold">{selectedPatient.fullName}</h3>
                       <p className="text-sm text-muted-foreground">{selectedPatient.nationalId}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Edad: {calculateAge(selectedPatient.dateOfBirth)} años
-                      </p>
+                      <p className="text-sm text-muted-foreground">Edad: {calculateAge(selectedPatient.dateOfBirth)} años</p>
                     </div>
                   </div>
                 </CardContent>
@@ -287,9 +289,7 @@ export default function PacientesPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-relaxed">
-                    {selectedPatient.medicalNotes || "Sin notas registradas."}
-                  </p>
+                  <p className="text-sm leading-relaxed">{selectedPatient.medicalNotes || "Sin notas registradas."}</p>
                 </CardContent>
               </Card>
             </div>
@@ -297,7 +297,7 @@ export default function PacientesPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Diálogo de eliminación */}
+      {/* Dialog eliminar */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent>
           <DialogHeader>
