@@ -68,3 +68,47 @@ export const medicalSpecialtyMap: Record<string, string> = {
   "Otolaryngology": "Otorrinolaringología",
 };
 
+export type CreateAppUserReq = {
+  id: string;
+  firstName: string;
+  secondName?: string;
+  firstSurname: string;
+  secondSurname?: string;
+  dateOfBirth?: Date;
+  avatar?: string;
+};
+
+export type CreatePatientReq = {
+  appUserId: string;
+  nationalId: string;
+  inss: number;
+  phone: string;
+  occupation?: string;
+  address: string;
+  municipalityId: number;
+  medicalNotes?: string;
+};
+
+export type AppUserRes = {
+  id: string;
+  firstName: string;
+  secondName?: string;
+  firstSurname: string;
+  secondSurname?: string;
+  avatar?: string;
+  dateOfBirth?: Date;
+  createdAt: Date;
+};
+
+export type PatientRes = {
+  id: number;
+  appUserId: string;
+  nationalId: string;
+  inss: number;
+  phone: string;
+  occupation?: string;
+  address: string;
+  municipalityId: number;
+  medicalNotes?: string;
+  createdAt: Date;
+};

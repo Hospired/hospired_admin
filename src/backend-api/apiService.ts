@@ -4,6 +4,10 @@ import {
   CreateAdminUserReq,
   CreatePhysicianReq,
   PhysicianRes,
+  PatientRes,
+  AppUserRes,
+  CreateAppUserReq,
+  CreatePatientReq,
 } from "./dtos";
 
 export async function createAdminUser(req: CreateAdminUserReq) {
@@ -116,10 +120,29 @@ export async function updatePhysician(id: number, updates: Partial<CreatePhysici
   }
 }
 
+export async function getPhysicianById(physicianId: number): Promise<PhysicianRes | null> {
+  const { data, error } = await supabase
+    .from("physicians")
+    .select("*")
+    .eq("id", physicianId)
+    .maybeSingle();
 
-export async function getPhysicianById(physicianId: number) {
-  // TODO: returns PhysicianRes
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    adminUserId: data.admin_user_id,
+    nationalId: data.national_id,
+    licenseId: data.license_id,
+    specialty: data.specialty,
+    public_email: data.public_email,
+    phone_number: data.phone_number,
+    notes: data.notes ?? undefined,
+    createdAt: new Date(data.created_at),
+  };
 }
+
 
 export async function getAuthUser() {
   const { data, error } = await supabase.auth.getUser();
@@ -169,4 +192,98 @@ export async function signOutUser() {
     console.error("Signout error:", error.message);
     throw error;
   }
+}
+
+//Pacientes
+
+// --- APP USERS ---
+
+export async function createAppUser(req: CreateAppUserReq) {
+  const { data, error } = await supabase
+    .from("app_users")
+    .insert({
+      id: req.id,
+      first_name: req.firstName,
+      second_name: req.secondName ?? null,
+      first_last_name: req.firstSurname,
+      second_last_name: req.secondSurname ?? null,
+      date_of_birth: req.dateOfBirth ? req.dateOfBirth.toISOString() : null,
+      avatar: req.avatar ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error al crear app_user: ${error.message}`);
+  return data;
+}
+
+export async function getAppUser(id: string): Promise<AppUserRes | null> {
+  const { data, error } = await supabase
+    .from("app_users")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Error al obtener app_user: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    firstName: data.first_name,
+    secondName: data.second_name ?? undefined,
+    firstSurname: data.first_last_name,
+    secondSurname: data.second_last_name ?? undefined,
+    avatar: data.avatar ?? undefined,
+    dateOfBirth: data.date_of_birth ? new Date(data.date_of_birth) : undefined,
+    createdAt: new Date(data.created_at),
+  };
+}
+
+// --- PATIENTS ---
+
+export async function createPatient(req: CreatePatientReq) {
+  const user = await getAppUser(req.appUserId);
+  if (!user) throw new Error("El app_user_id especificado no existe");
+
+  const { data, error } = await supabase
+    .from("patients")
+    .insert({
+      app_user_id: req.appUserId,
+      national_id: req.nationalId,
+      inss_id: req.inss,
+      phone_number: req.phone,
+      occupation: req.occupation ?? null,
+      neighborhood: req.address,
+      municipality_id: req.municipalityId,
+      medical_notes: req.medicalNotes ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error al crear paciente: ${error.message}`);
+  return data;
+}
+
+export async function getPatientByAppUserId(appUserId: string): Promise<PatientRes | null> {
+  const { data, error } = await supabase
+    .from("patients")
+    .select("*")
+    .eq("app_user_id", appUserId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Error al obtener paciente: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    appUserId: data.app_user_id,
+    nationalId: data.national_id,
+    inss: data.inss_id,
+    phone: data.phone_number,
+    occupation: data.occupation ?? undefined,
+    address: data.neighborhood,
+    municipalityId: data.municipality_id,
+    medicalNotes: data.medical_notes ?? undefined,
+    createdAt: new Date(data.created_at),
+  };
 }
