@@ -64,7 +64,7 @@ const data = {
       title: "Citas",
       url: "/dashboard/citas",
       icon: Calendar,
-      items: [
+      /*items: [
         {
           title: "Calendario",
           url: "/dashboard/citas/calendario",
@@ -77,7 +77,7 @@ const data = {
           title: "Interconsultas",
           url: "/dashboard/citas/interconsultas",
         },
-      ],
+      ],*/
     },
     {
       title: "Consultas",
