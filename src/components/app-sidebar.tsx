@@ -110,11 +110,6 @@ const data = {
       ],
     },
     {
-      title: "Inicio",
-      url: "/dashboard/centros",
-      icon: Home,
-    },
-    {
       title: "Exámenes",
       url: "/dashboard/examenes",
       icon: FlaskConical,
@@ -128,6 +123,12 @@ const data = {
           url: "/dashboard/examenes/nuevo",
         },
       ],
+    },
+        {
+      title: "Centros de salud",
+      url: "/dashboard/centros",
+      icon: Home,
+      isActive: true,
     },
     {
       title: "Personal",
