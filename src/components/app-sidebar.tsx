@@ -31,11 +31,6 @@ import {
 
 
 const data = {
-  user: {
-    name: "Jonathan Martinez",
-    email: "jonathan@example.com",
-    avatar: "/avatars/avatar-01.png",
-  },
   teams: [
     {
       name: "Hospired",
@@ -115,6 +110,11 @@ const data = {
       ],
     },
     {
+      title: "Inicio",
+      url: "/dashboard/centros",
+      icon: Home,
+    },
+    {
       title: "Exámenes",
       url: "/dashboard/examenes",
       icon: FlaskConical,
@@ -180,7 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {/* Usuario autenticado */}
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser/>
       </SidebarFooter>
 
       {/* Rail lateral para modo compacto */}
