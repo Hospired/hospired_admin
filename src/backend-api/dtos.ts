@@ -113,10 +113,54 @@ export type PatientRes = {
   createdAt: Date;
 };
 
-/** Nuevo tipo para municipalities */
 export type Municipality = {
   id: number;
   name?: string;
   department: string;
   createdAt?: Date;
+};
+
+// HEALTHCARE FACILITIES
+export type HealthcareFacilityRes = {
+  id: number;
+  name: string;
+  servesInss: boolean;
+  isPublicMinsa: boolean;
+  address: string;
+  district: string;
+  municipalityId: number;
+  latitude: number;
+  longitude: number;
+  notes?: string;
+  createdAt: Date;
+  municipalityName?: string;
+  department?: string;
+};
+
+export type CreateHealthcareFacilityReq = {
+  name: string;
+  servesInss: boolean;
+  isPublicMinsa: boolean;
+  address: string;
+  district: string;
+  municipalityId: number;
+  latitude: number;
+  longitude: number;
+  notes?: string;
+};
+
+// FACILITY UNITS
+export type FacilityUnitRes = {
+  id: number;
+  facilityId: number;
+  name: string;
+  indications?: string;
+  createdAt: Date;
+  facilityName?: string;
+};
+
+export type CreateFacilityUnitReq = {
+  facilityId: number;
+  name: string;
+  indications?: string;
 };

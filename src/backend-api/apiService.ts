@@ -8,6 +8,10 @@ import {
   AppUserRes,
   CreateAppUserReq,
   CreatePatientReq,
+  CreateHealthcareFacilityReq,
+  HealthcareFacilityRes,
+  CreateFacilityUnitReq,
+  FacilityUnitRes
 } from "./dtos";
 
 export async function createAdminUser(req: CreateAdminUserReq) {
@@ -348,4 +352,167 @@ export async function getMunicipalities() {
 
   if (error) throw new Error(`Error al obtener municipios: ${error.message}`);
   return data ?? [];
+}
+
+// 🏥 Crear una instalación de salud
+export async function createHealthcareFacility(req: CreateHealthcareFacilityReq) {
+  const { data, error } = await supabase
+    .from("healthcare_facilities")
+    .insert({
+      name: req.name,
+      serves_inss: req.servesInss,
+      is_public_minsa: req.isPublicMinsa,
+      address: req.address,
+      district: req.district,
+      municipality_id: req.municipalityId,
+      latitude: req.latitude,
+      longitude: req.longitude,
+      notes: req.notes ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error al crear instalación: ${error.message}`);
+
+  return {
+    id: data.id,
+    name: data.name,
+    servesInss: data.serves_inss,
+    isPublicMinsa: data.is_public_minsa,
+    address: data.address,
+    district: data.district,
+    municipalityId: data.municipality_id,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    notes: data.notes ?? undefined,
+    createdAt: new Date(data.created_at),
+  } as HealthcareFacilityRes;
+}
+
+// 🏥 Obtener todas las instalaciones de salud con municipio y departamento
+export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]> {
+  const { data, error } = await supabase
+    .from("healthcare_facilities")
+    .select(`
+      id,
+      name,
+      serves_inss,
+      is_public_minsa,
+      address,
+      district,
+      municipality_id,
+      latitude,
+      longitude,
+      notes,
+      created_at,
+      municipalities (
+        name,
+        department
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener instalaciones: ${error.message}`);
+
+  return (data ?? []).map((f: any) => ({
+    id: f.id,
+    name: f.name,
+    servesInss: f.serves_inss,
+    isPublicMinsa: f.is_public_minsa,
+    address: f.address,
+    district: f.district,
+    municipalityId: f.municipality_id,
+    latitude: f.latitude,
+    longitude: f.longitude,
+    notes: f.notes ?? undefined,
+    createdAt: new Date(f.created_at),
+    municipalityName: f.municipalities?.name ?? "",
+    department: f.municipalities?.department ?? "",
+  }));
+}
+
+// 🏥 Obtener una instalación específica
+export async function getHealthcareFacilityById(id: number): Promise<HealthcareFacilityRes | null> {
+  const { data, error } = await supabase
+    .from("healthcare_facilities")
+    .select(`
+      *,
+      municipalities (
+        name,
+        department
+      )
+    `)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Error al obtener instalación: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    servesInss: data.serves_inss,
+    isPublicMinsa: data.is_public_minsa,
+    address: data.address,
+    district: data.district,
+    municipalityId: data.municipality_id,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    notes: data.notes ?? undefined,
+    createdAt: new Date(data.created_at),
+    municipalityName: data.municipalities?.name ?? "",
+    department: data.municipalities?.department ?? "",
+  };
+}
+
+/* ---------------------------- FACILITY UNITS ---------------------------- */
+
+// 🧩 Crear una unidad dentro de una instalación
+export async function createFacilityUnit(req: CreateFacilityUnitReq) {
+  const { data, error } = await supabase
+    .from("facility_units")
+    .insert({
+      facility_id: req.facilityId,
+      name: req.name,
+      indications: req.indications ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error al crear unidad: ${error.message}`);
+
+  return {
+    id: data.id,
+    facilityId: data.facility_id,
+    name: data.name,
+    indications: data.indications ?? undefined,
+    createdAt: new Date(data.created_at),
+  } as FacilityUnitRes;
+}
+
+// 🧩 Obtener unidades de una instalación
+export async function getFacilityUnits(facilityId: number): Promise<FacilityUnitRes[]> {
+  const { data, error } = await supabase
+    .from("facility_units")
+    .select(`
+      id,
+      facility_id,
+      name,
+      indications,
+      created_at,
+      healthcare_facilities(name)
+    `)
+    .eq("facility_id", facilityId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener unidades: ${error.message}`);
+
+  return (data ?? []).map((u: any) => ({
+    id: u.id,
+    facilityId: u.facility_id,
+    name: u.name,
+    indications: u.indications ?? "",
+    createdAt: new Date(u.created_at),
+    facilityName: u.healthcare_facilities?.name ?? "",
+  }));
 }
