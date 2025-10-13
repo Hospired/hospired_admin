@@ -1,683 +1,517 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Building2, Hospital, MoreHorizontal, Edit, Trash2, ChevronRight } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import React, { useState, useEffect } from "react";
+import {
+  getHealthcareFacilities,
+  createHealthcareFacility,
+  getFacilityUnits,
+  createFacilityUnit,
+  getMunicipalities,
+} from "@/backend-api/apiService";
+import {
+  HealthcareFacilityRes,
+  FacilityUnitRes,
+  Municipality,
+  CreateHealthcareFacilityReq,
+  CreateFacilityUnitReq,
+} from "@/backend-api/dtos";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, Building2, Hospital } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
+  DialogFooter,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-type HealthcareFacility = {
-  id: number
-  name: string
-  serves_inss: boolean
-  is_public_minsa: boolean
-  address: string
-  district: string
-  municipality_id: number
-  latitude: number
-  longitude: number
-  created_at: string
-  notes?: string
-}
+export default function HealthcareFacilitiesAndUnitsPage() {
+  const [tab, setTab] = useState("facilities");
 
-type FacilityUnit = {
-  id: number
-  facility_id: number
-  name: string
-  indications?: string
-  created_at: string
-}
-
-const facilitiesData: HealthcareFacility[] = [
-  {
-    id: 1,
-    name: "Hospital Manolo Morales",
-    serves_inss: true,
-    is_public_minsa: true,
-    address: "Barrio Altagracia, Managua",
-    district: "Distrito III",
-    municipality_id: 1,
-    latitude: 12.1364,
-    longitude: -86.2514,
-    created_at: "2024-01-15T10:00:00Z",
-    notes: "Hospital de referencia nacional",
-  },
-  {
-    id: 2,
-    name: "Centro de Salud Villa Libertad",
-    serves_inss: false,
-    is_public_minsa: true,
-    address: "Villa Libertad, Managua",
-    district: "Distrito V",
-    municipality_id: 1,
-    latitude: 12.115,
-    longitude: -86.2362,
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: 3,
-    name: "Hospital Escuela Oscar Danilo Rosales",
-    serves_inss: true,
-    is_public_minsa: true,
-    address: "León Centro",
-    district: "Distrito I",
-    municipality_id: 2,
-    latitude: 12.4333,
-    longitude: -86.8833,
-    created_at: "2024-01-15T10:00:00Z",
-    notes: "Hospital universitario",
-  },
-]
-
-const unitsData: FacilityUnit[] = [
-  {
-    id: 1,
-    facility_id: 1,
-    name: "Cardiología",
-    indications: "Consultas de lunes a viernes de 7am a 3pm",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: 2,
-    facility_id: 1,
-    name: "Emergencias",
-    indications: "Atención 24/7",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: 3,
-    facility_id: 2,
-    name: "Medicina General",
-    indications: "Lunes a viernes de 8am a 4pm",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-  {
-    id: 4,
-    facility_id: 3,
-    name: "Pediatría",
-    indications: "Consultas con cita previa",
-    created_at: "2024-01-15T10:00:00Z",
-  },
-]
-
-export default function HealthcareFacilitiesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [searchFacilityTerm, setSearchFacilityTerm] = useState("")
-
-  // Estados para centros de salud
-  const [facilities, setFacilities] = useState<HealthcareFacility[]>(facilitiesData)
-  const [facilityDialogOpen, setFacilityDialogOpen] = useState(false)
-  const [editingFacility, setEditingFacility] = useState<HealthcareFacility | null>(null)
-  const [facilityForm, setFacilityForm] = useState({
+  // Facilities
+  const [facilities, setFacilities] = useState<HealthcareFacilityRes[]>([]);
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [loadingFacilities, setLoadingFacilities] = useState(true);
+  const [newFacility, setNewFacility] = useState<CreateHealthcareFacilityReq>({
     name: "",
-    serves_inss: false,
-    is_public_minsa: false,
+    servesInss: false,
+    isPublicMinsa: false,
     address: "",
     district: "",
-    municipality_id: 1,
+    municipalityId: 0,
     latitude: 0,
     longitude: 0,
     notes: "",
-  })
+  });
+  const [openFacilityDialog, setOpenFacilityDialog] = useState(false);
 
-  // Estados para unidades
-  const [units, setUnits] = useState<FacilityUnit[]>(unitsData)
-  const [unitDialogOpen, setUnitDialogOpen] = useState(false)
-  const [editingUnit, setEditingUnit] = useState<FacilityUnit | null>(null)
-  const [unitForm, setUnitForm] = useState({
-    facility_id: 1,
+  // Units
+  const [units, setUnits] = useState<FacilityUnitRes[]>([]);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+  const [newUnit, setNewUnit] = useState<CreateFacilityUnitReq>({
+    facilityId: 0,
     name: "",
     indications: "",
-  })
+  });
+  const [openUnitDialog, setOpenUnitDialog] = useState(false);
 
-  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null)
+  // Search
+  const [searchFacilityTerm, setSearchFacilityTerm] = useState("");
+  const [searchUnitTerm, setSearchUnitTerm] = useState("");
 
-  // Funciones para centros de salud
-  const openFacilityDialog = (facility?: HealthcareFacility) => {
-    if (facility) {
-      setEditingFacility(facility)
-      setFacilityForm({
-        name: facility.name,
-        serves_inss: facility.serves_inss,
-        is_public_minsa: facility.is_public_minsa,
-        address: facility.address,
-        district: facility.district,
-        municipality_id: facility.municipality_id,
-        latitude: facility.latitude,
-        longitude: facility.longitude,
-        notes: facility.notes || "",
-      })
-    } else {
-      setEditingFacility(null)
-      setFacilityForm({
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoadingFacilities(true);
+        const [facilitiesData, municipalitiesData] = await Promise.all([
+          getHealthcareFacilities(),
+          getMunicipalities(),
+        ]);
+        setFacilities(facilitiesData);
+        setMunicipalities(municipalitiesData);
+      } catch (error: any) {
+        alert("Error cargando datos: " + error.message);
+      } finally {
+        setLoadingFacilities(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  async function loadUnits(facilityId: number) {
+    try {
+      setLoadingUnits(true);
+      const unitsData = await getFacilityUnits(facilityId);
+      setUnits(unitsData);
+    } catch (error: any) {
+      alert("Error cargando unidades: " + error.message);
+    } finally {
+      setLoadingUnits(false);
+    }
+  }
+
+  async function saveFacility() {
+    try {
+      const created = await createHealthcareFacility(newFacility);
+      setFacilities((prev) => [created, ...prev]);
+      setNewFacility({
         name: "",
-        serves_inss: false,
-        is_public_minsa: false,
+        servesInss: false,
+        isPublicMinsa: false,
         address: "",
         district: "",
-        municipality_id: 1,
+        municipalityId: 0,
         latitude: 0,
         longitude: 0,
         notes: "",
-      })
+      });
+      setOpenFacilityDialog(false);
+      alert("Centro de salud creado correctamente");
+    } catch (error: any) {
+      alert("Error al crear centro de salud: " + error.message);
     }
-    setFacilityDialogOpen(true)
   }
 
-  const saveFacility = () => {
-    if (editingFacility) {
-      setFacilities(facilities.map((f) => (f.id === editingFacility.id ? { ...f, ...facilityForm } : f)))
-    } else {
-      const newFacility: HealthcareFacility = {
-        id: Math.max(...facilities.map((f) => f.id)) + 1,
-        ...facilityForm,
-        created_at: new Date().toISOString(),
-      }
-      setFacilities([...facilities, newFacility])
+  async function saveUnit() {
+    if (!selectedFacilityId) {
+      alert("Seleccione un centro de salud primero");
+      return;
     }
-    setFacilityDialogOpen(false)
-  }
-
-  const deleteFacility = (id: number) => {
-    setFacilities(facilities.filter((f) => f.id !== id))
-  }
-
-  // Funciones para unidades
-  const openUnitDialog = (unit?: FacilityUnit) => {
-    if (unit) {
-      setEditingUnit(unit)
-      setUnitForm({
-        facility_id: unit.facility_id,
-        name: unit.name,
-        indications: unit.indications || "",
-      })
-    } else {
-      setEditingUnit(null)
-      setUnitForm({
-        facility_id: selectedFacilityId || 1,
-        name: "",
-        indications: "",
-      })
+    try {
+      const created = await createFacilityUnit({ ...newUnit, facilityId: selectedFacilityId });
+      setUnits((prev) => [created, ...prev]);
+      setNewUnit({ facilityId: 0, name: "", indications: "" });
+      setOpenUnitDialog(false);
+      alert("Unidad médica creada correctamente");
+    } catch (error: any) {
+      alert("Error al crear unidad médica: " + error.message);
     }
-    setUnitDialogOpen(true)
   }
 
-  const saveUnit = () => {
-    if (editingUnit) {
-      setUnits(units.map((u) => (u.id === editingUnit.id ? { ...u, ...unitForm } : u)))
-    } else {
-      const newUnit: FacilityUnit = {
-        id: Math.max(...units.map((u) => u.id)) + 1,
-        ...unitForm,
-        created_at: new Date().toISOString(),
-      }
-      setUnits([...units, newUnit])
-    }
-    setUnitDialogOpen(false)
-  }
+  const filteredFacilities = facilities.filter((f) =>
+    f.name.toLowerCase().includes(searchFacilityTerm.toLowerCase())
+  );
 
-  const deleteUnit = (id: number) => {
-    setUnits(units.filter((u) => u.id !== id))
-  }
-
-  const getFacilityName = (id: number) => {
-    return facilities.find((f) => f.id === id)?.name || "Desconocido"
-  }
-
-  const getUnitsCount = (facilityId: number) => {
-    return units.filter((u) => u.facility_id === facilityId).length
-  }
-
-  const getFilteredUnits = () => {
-    if (!selectedFacilityId) return []
-    return units.filter((u) => u.facility_id === selectedFacilityId)
-  }
+  const filteredUnits = units.filter((u) =>
+    u.name.toLowerCase().includes(searchUnitTerm.toLowerCase())
+  );
 
   return (
-    <>
-      <div className="flex-1 space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Sistema de Centros de Salud</h2>
-            <p className="text-muted-foreground">Gestión de centros de salud y unidades médicas</p>
-          </div>
+    <div className="flex-1 space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            Sistema de Centros de Salud
+          </h2>
+          <p className="text-muted-foreground">Gestión de centros de salud y unidades médicas</p>
         </div>
+      </div>
 
-        <Tabs defaultValue="facilities" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="facilities">Centros de Salud</TabsTrigger>
-            <TabsTrigger value="units">Unidades Médicas</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="facilities" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="facilities">Centros de Salud</TabsTrigger>
+          <TabsTrigger value="units">Unidades Médicas</TabsTrigger>
+        </TabsList>
 
-          {/* Tab de Centros de Salud */}
-          <TabsContent value="facilities" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Buscar centros de salud..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => openFacilityDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo Centro de Salud
-              </Button>
-            </div>
+        {/* Centros de Salud */}
+        <TabsContent value="facilities" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Input
+              placeholder="Buscar centros de salud..."
+              value={searchFacilityTerm}
+              onChange={(e) => setSearchFacilityTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setOpenFacilityDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Centro de Salud
+            </Button>
+          </div>
 
-            <div className="grid gap-4">
-              {facilities
-                .filter((f) => f.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map((facility) => (
-                  <Card key={facility.id} className="border-border/50">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-4 flex-1">
-                          <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg flex-shrink-0">
-                            <Hospital className="h-6 w-6 text-blue-500" />
+          <div className="grid gap-4">
+            {filteredFacilities.map((facility) => (
+              <Card key={facility.id} className="border-border/50">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1">
+                      <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg flex-shrink-0">
+                        <Hospital className="h-6 w-6 text-blue-500" />
+                      </div>
+                      <div className="space-y-3 flex-1">
+                        <div>
+                          <h3 className="font-semibold text-foreground text-lg">{facility.name}</h3>
+                          <p className="text-sm text-muted-foreground">{facility.address}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Distrito:</span>
+                              <span className="text-sm">{facility.district}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Coordenadas:</span>
+                              <span className="text-xs text-muted-foreground">
+                                {facility.latitude.toFixed(4)}, {facility.longitude.toFixed(4)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="space-y-3 flex-1">
-                            <div>
-                              <h3 className="font-semibold text-foreground text-lg">{facility.name}</h3>
-                              <p className="text-sm text-muted-foreground">{facility.address}</p>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">INSS:</span>
+                              <Badge className={facility.servesInss ? "bg-green-500/10 text-green-500" : "bg-gray-500/10 text-gray-500"}>
+                                {facility.servesInss ? "Sí" : "No"}
+                              </Badge>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">Distrito:</span>
-                                  <span className="text-sm">{facility.district}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">Coordenadas:</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {facility.latitude.toFixed(4)}, {facility.longitude.toFixed(4)}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">INSS:</span>
-                                  <Badge
-                                    className={
-                                      facility.serves_inss
-                                        ? "bg-green-500/10 text-green-500 border-green-500/20"
-                                        : "bg-gray-500/10 text-gray-500 border-gray-500/20"
-                                    }
-                                  >
-                                    {facility.serves_inss ? "Sí" : "No"}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">MINSA Público:</span>
-                                  <Badge
-                                    className={
-                                      facility.is_public_minsa
-                                        ? "bg-green-500/10 text-green-500 border-green-500/20"
-                                        : "bg-gray-500/10 text-gray-500 border-gray-500/20"
-                                    }
-                                  >
-                                    {facility.is_public_minsa ? "Sí" : "No"}
-                                  </Badge>
-                                </div>
-                              </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">MINSA Público:</span>
+                              <Badge className={facility.isPublicMinsa ? "bg-green-500/10 text-green-500" : "bg-gray-500/10 text-gray-500"}>
+                                {facility.isPublicMinsa ? "Sí" : "No"}
+                              </Badge>
                             </div>
-                            {facility.notes && (
-                              <div className="pt-2 border-t border-border/50">
-                                <p className="text-sm text-muted-foreground">
-                                  <span className="font-medium">Notas:</span> {facility.notes}
-                                </p>
-                              </div>
-                            )}
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openFacilityDialog(facility)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => deleteFacility(facility.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {facility.notes && (
+                          <div className="pt-2 border-t border-border/50">
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-medium">Notas:</span> {facility.notes}
+                            </p>
+                          </div>
+                        )}
                       </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Unidades Médicas */}
+        <TabsContent value="units" className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1">
+              <select
+                className="border rounded p-2 w-full md:w-1/2"
+                value={selectedFacilityId ?? ""}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  setSelectedFacilityId(id);
+                  if (id) loadUnits(id);
+                }}
+              >
+                <option value="">Seleccione instalación</option>
+                {facilities.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Input de búsqueda visible solo si hay instalación seleccionada */}
+              {selectedFacilityId && (
+                <Input
+                  placeholder="Buscar unidad médica..."
+                  value={searchUnitTerm}
+                  onChange={(e) => setSearchUnitTerm(e.target.value)}
+                  className="w-full md:w-1/3"
+                />
+              )}
+            </div>
+
+            {/* Botón para agregar nueva unidad */}
+            <Dialog open={openUnitDialog} onOpenChange={setOpenUnitDialog}>
+              <DialogTrigger asChild>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+                  disabled={!selectedFacilityId}
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Nueva unidad
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Registrar unidad</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-3">
+                  <select
+                    className="border rounded p-2 w-full"
+                    value={selectedFacilityId ?? ""}
+                    onChange={(e) => setSelectedFacilityId(Number(e.target.value))}
+                  >
+                    <option value="">Seleccione instalación</option>
+                    {facilities.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    placeholder="Nombre de la unidad"
+                    className="border rounded p-2 w-full"
+                    value={newUnit.name}
+                    onChange={(e) =>
+                      setNewUnit({
+                        ...newUnit,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+
+                  <textarea
+                    placeholder="Indicaciones"
+                    className="border rounded p-2 w-full"
+                    value={newUnit.indications}
+                    onChange={(e) =>
+                      setNewUnit({
+                        ...newUnit,
+                        indications: e.target.value,
+                      })
+                    }
+                  />
+
+                  <Button onClick={saveUnit}>Guardar unidad</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+          {!selectedFacilityId ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredFacilities.map((facility) => (
+                <Card
+                  key={facility.id}
+                  className="border-border/50 cursor-pointer hover:border-blue-500/50 transition-colors"
+                  onClick={() => {
+                    setSelectedFacilityId(facility.id);
+                    loadUnits(facility.id);
+                  }}
+                >
+                  <CardHeader>
+                    <CardTitle>{facility.name}</CardTitle>
+                    <CardDescription>{facility.district}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Unidades médicas:</span>
+                      <Badge variant="outline">{units.length}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <Button variant="outline" size="sm" onClick={() => setSelectedFacilityId(null)}>
+                ← Volver a centros
+              </Button>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
+                {filteredUnits.map((unit) => (
+                  <Card key={unit.id} className="border-border/50">
+                    <CardHeader>
+                      <CardTitle>{unit.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {unit.indications && <p>{unit.indications}</p>}
+                      <p className="text-xs text-muted-foreground mt-2">Creado: {new Date(unit.createdAt).toLocaleDateString()}</p>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
             </div>
-          </TabsContent>
+          )}
+        </TabsContent>
+      </Tabs>
 
-          <TabsContent value="units" className="space-y-4">
-            {!selectedFacilityId ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Buscar centros de salud..."
-                      value={searchFacilityTerm}
-                      onChange={(e) => setSearchFacilityTerm(e.target.value)}
-                      className="pl-10"
+      {/* Dialogs */}
+      <Dialog open={openFacilityDialog} onOpenChange={setOpenFacilityDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar instalación</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <input
+                  placeholder="Nombre"
+                  className="border rounded p-2 w-full"
+                  value={newFacility.name}
+                    onChange={(e) =>
+                    setNewFacility({
+                      ...newFacility,
+                      name: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  placeholder="Dirección"
+                  className="border rounded p-2 w-full"
+                  value={newFacility.address}
+                  onChange={(e) =>
+                  setNewFacility({
+                    ...newFacility,
+                          address: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  placeholder="Distrito"
+                  className="border rounded p-2 w-full"
+                  value={newFacility.district}
+                  onChange={(e) =>
+                    setNewFacility({
+                    ...newFacility,
+                    district: e.target.value,
+                    })
+                  }
+                />
+                <select
+                  className="border rounded p-2 w-full"
+                  value={newFacility.municipalityId}
+                  onChange={(e) =>
+                  setNewFacility({
+                      ...newFacility,
+                          municipalityId: Number(e.target.value),
+                        })
+                      }
+                    >
+                  <option value="">Seleccione municipio</option>
+                    {municipalities.map((m) => (
+                      <option key={m.id} value={m.id}>
+                      {m.name} ({m.department})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Latitud"
+                    className="border rounded p-2"
+                    value={newFacility.latitude}
+                      onChange={(e) =>
+                        setNewFacility({
+                          ...newFacility,
+                          latitude: parseFloat(e.target.value),
+                        })
+                        }
                     />
-                  </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => openUnitDialog()}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nueva Unidad
-                  </Button>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {facilities
-                    .filter((f) => f.name.toLowerCase().includes(searchFacilityTerm.toLowerCase()))
-                    .map((facility) => (
-                      <Card
-                        key={facility.id}
-                        className="border-border/50 cursor-pointer hover:border-blue-500/50 transition-colors"
-                        onClick={() => setSelectedFacilityId(facility.id)}
-                      >
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <Hospital className="h-5 w-5 text-blue-500" />
-                              <div>
-                                <CardTitle className="text-foreground">{facility.name}</CardTitle>
-                                <CardDescription>{facility.district}</CardDescription>
-                              </div>
-                            </div>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Unidades médicas:</span>
-                            <Badge variant="outline">{getUnitsCount(facility.id)}</Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Button variant="outline" size="sm" onClick={() => setSelectedFacilityId(null)}>
-                      ← Volver a centros
-                    </Button>
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">{getFacilityName(selectedFacilityId)}</h3>
-                      <p className="text-sm text-muted-foreground">Unidades médicas del centro</p>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Longitud"
+                    className="border rounded p-2"
+                    value={newFacility.longitude}
+                    onChange={(e) =>
+                      setNewFacility({
+                        ...newFacility,
+                        longitude: parseFloat(e.target.value),
+                        })
+                      }
+                      />
                     </div>
-                  </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => openUnitDialog()}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nueva Unidad
-                  </Button>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {getFilteredUnits().map((unit) => (
-                    <Card key={unit.id} className="border-border/50">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Building2 className="h-5 w-5 text-blue-500" />
-                            <div>
-                              <CardTitle className="text-foreground">{unit.name}</CardTitle>
-                            </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openUnitDialog(unit)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600" onClick={() => deleteUnit(unit.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {unit.indications && (
-                            <div className="pt-2">
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium">Indicaciones:</span> {unit.indications}
-                              </p>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between text-sm pt-2 border-t border-border/50">
-                            <span className="text-muted-foreground">Creado:</span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(unit.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {getFilteredUnits().length === 0 && (
-                  <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No hay unidades médicas</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Este centro aún no tiene unidades médicas registradas
-                      </p>
-                      <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => openUnitDialog()}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Crear primera unidad
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Dialog para Centros de Salud */}
-        <Dialog open={facilityDialogOpen} onOpenChange={setFacilityDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingFacility ? "Editar Centro de Salud" : "Nuevo Centro de Salud"}</DialogTitle>
-              <DialogDescription>
-                {editingFacility
-                  ? "Modifica los datos del centro de salud"
-                  : "Ingresa los datos del nuevo centro de salud"}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="facility-name">Nombre del Centro</Label>
-                <Input
-                  id="facility-name"
-                  value={facilityForm.name}
-                  onChange={(e) => setFacilityForm({ ...facilityForm, name: e.target.value })}
-                  placeholder="Ej: Hospital Manolo Morales"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="facility-address">Dirección</Label>
-                  <Input
-                    id="facility-address"
-                    value={facilityForm.address}
-                    onChange={(e) => setFacilityForm({ ...facilityForm, address: e.target.value })}
-                    placeholder="Ej: Barrio Altagracia"
+                    <textarea
+                      placeholder="Notas"
+                      className="border rounded p-2 w-full"
+                      value={newFacility.notes}
+                      onChange={(e) =>
+                        setNewFacility({
+                          ...newFacility,
+                          notes: e.target.value,
+                        })
+                      }
+                    />
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={newFacility.servesInss}
+                        onChange={(e) =>
+                          setNewFacility({
+                            ...newFacility,
+                            servesInss: e.target.checked,
+                          })
+                        }
+                      />
+                        Atiende INSS
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={newFacility.isPublicMinsa}
+                        onChange={(e) =>
+                        setNewFacility({
+                        ...newFacility,
+                        isPublicMinsa: e.target.checked,
+                        })
+                      }
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="facility-district">Distrito</Label>
-                  <Input
-                    id="facility-district"
-                    value={facilityForm.district}
-                    onChange={(e) => setFacilityForm({ ...facilityForm, district: e.target.value })}
-                    placeholder="Ej: Distrito III"
-                  />
-                </div>
+                  Pública (MINSA)
+                </label>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="facility-latitude">Latitud</Label>
-                  <Input
-                    id="facility-latitude"
-                    type="number"
-                    step="0.0001"
-                    value={facilityForm.latitude}
-                    onChange={(e) => setFacilityForm({ ...facilityForm, latitude: Number.parseFloat(e.target.value) })}
-                    placeholder="12.1364"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="facility-longitude">Longitud</Label>
-                  <Input
-                    id="facility-longitude"
-                    type="number"
-                    step="0.0001"
-                    value={facilityForm.longitude}
-                    onChange={(e) => setFacilityForm({ ...facilityForm, longitude: Number.parseFloat(e.target.value) })}
-                    placeholder="-86.2514"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="facility-inss"
-                    checked={facilityForm.serves_inss}
-                    onCheckedChange={(checked) => setFacilityForm({ ...facilityForm, serves_inss: checked })}
-                  />
-                  <Label htmlFor="facility-inss" className="cursor-pointer">
-                    Atiende INSS
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="facility-minsa"
-                    checked={facilityForm.is_public_minsa}
-                    onCheckedChange={(checked) => setFacilityForm({ ...facilityForm, is_public_minsa: checked })}
-                  />
-                  <Label htmlFor="facility-minsa" className="cursor-pointer">
-                    MINSA Público
-                  </Label>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="facility-notes">Notas (opcional)</Label>
-                <Textarea
-                  id="facility-notes"
-                  value={facilityForm.notes}
-                  onChange={(e) => setFacilityForm({ ...facilityForm, notes: e.target.value })}
-                  placeholder="Información adicional sobre el centro de salud"
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setFacilityDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={saveFacility} className="bg-blue-600 hover:bg-blue-700">
-                {editingFacility ? "Guardar Cambios" : "Crear Centro"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog para Unidades */}
-        <Dialog open={unitDialogOpen} onOpenChange={setUnitDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingUnit ? "Editar Unidad Médica" : "Nueva Unidad Médica"}</DialogTitle>
-              <DialogDescription>
-                {editingUnit ? "Modifica los datos de la unidad" : "Ingresa los datos de la nueva unidad"}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="unit-name">Nombre de la Unidad</Label>
-                <Input
-                  id="unit-name"
-                  value={unitForm.name}
-                  onChange={(e) => setUnitForm({ ...unitForm, name: e.target.value })}
-                  placeholder="Ej: Cardiología"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit-facility">Centro de Salud</Label>
-                <Select
-                  value={unitForm.facility_id.toString()}
-                  onValueChange={(value) => setUnitForm({ ...unitForm, facility_id: Number.parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilities.map((facility) => (
-                      <SelectItem key={facility.id} value={facility.id.toString()}>
-                        {facility.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit-indications">Indicaciones (opcional)</Label>
-                <Textarea
-                  id="unit-indications"
-                  value={unitForm.indications}
-                  onChange={(e) => setUnitForm({ ...unitForm, indications: e.target.value })}
-                  placeholder="Horarios, requisitos, etc."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setUnitDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={saveUnit} className="bg-blue-600 hover:bg-blue-700">
-                {editingUnit ? "Guardar Cambios" : "Crear Unidad"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
-  )
+            <Button onClick={saveFacility}>Guardar instalación</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
