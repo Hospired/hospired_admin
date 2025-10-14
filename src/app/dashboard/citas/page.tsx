@@ -1,7 +1,24 @@
-"use client" 
+"use client"
 
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import {
+  getAllAppointments,
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+  getAllPatients,
+  getFacilityUnits,
+  // No getPhysicians: use getAllPhysicians from your repo or replace with the correct function if needed
+} from "@/backend-api/apiService"
+import {
+  AppointmentWithDetails,
+  CreateAppointmentReq,
+  PatientRes,
+  PhysicianRes,
+  FacilityUnitRes,
+  appointmentStatusMap,
+  AppointmentStatus,
+} from "@/backend-api/dtos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,116 +55,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-type Appointment = {
-  id: number
-  patient_id: number
-  physician_id: number | null
-  motive: string
-  specialty: string
-  status: "scheduled" | "completed" | "cancelled" | "no_show"
-  start: string
-  end: string
-  calendar_item_id: number | null
-  facility_unit_id: number | null
-  created_at: string
-}
-
-type Patient = {
-  id: number
-  name: string
-}
-
-type Physician = {
-  id: number
-  name: string
-  specialty: string
-}
-
-type FacilityUnit = {
-  id: number
-  name: string
-  facility_name: string
-}
-
-const patientsData: Patient[] = [
-  { id: 1, name: "Juan Pérez" },
-  { id: 2, name: "María García" },
-  { id: 3, name: "Carlos López" },
-]
-
-const physiciansData: Physician[] = [
-  { id: 1, name: "Dr. Roberto Martínez", specialty: "Cardiología" },
-  { id: 2, name: "Dra. Ana Rodríguez", specialty: "Pediatría" },
-  { id: 3, name: "Dr. Luis Hernández", specialty: "Medicina General" },
-]
-
-const facilityUnitsData: FacilityUnit[] = [
-  { id: 1, name: "Cardiología", facility_name: "Hospital Manolo Morales" },
-  { id: 2, name: "Emergencias", facility_name: "Hospital Manolo Morales" },
-  { id: 3, name: "Medicina General", facility_name: "Centro de Salud Villa Libertad" },
-  { id: 4, name: "Pediatría", facility_name: "Hospital Escuela Oscar Danilo Rosales" },
-]
-
-const healthcareFacilitiesData = [
-  { id: 1, name: "Hospital Manolo Morales" },
-  { id: 2, name: "Centro de Salud Villa Libertad" },
-  { id: 3, name: "Hospital Escuela Oscar Danilo Rosales" },
-]
-
-const appointmentsData: Appointment[] = [
-  {
-    id: 1,
-    patient_id: 1,
-    physician_id: 1,
-    motive: "Control de presión arterial",
-    specialty: "Cardiología",
-    status: "scheduled",
-    start: "2024-02-15T09:00:00Z",
-    end: "2024-02-15T09:30:00Z",
-    calendar_item_id: null,
-    facility_unit_id: 1,
-    created_at: "2024-02-01T10:00:00Z",
-  },
-  {
-    id: 2,
-    patient_id: 2,
-    physician_id: 2,
-    motive: "Consulta pediátrica de rutina",
-    specialty: "Pediatría",
-    status: "completed",
-    start: "2024-02-10T10:00:00Z",
-    end: "2024-02-10T10:30:00Z",
-    calendar_item_id: null,
-    facility_unit_id: 4,
-    created_at: "2024-02-01T11:00:00Z",
-  },
-  {
-    id: 3,
-    patient_id: 3,
-    physician_id: 3,
-    motive: "Dolor de cabeza persistente",
-    specialty: "Medicina General",
-    status: "scheduled",
-    start: "2024-02-20T14:00:00Z",
-    end: "2024-02-20T14:30:00Z",
-    calendar_item_id: null,
-    facility_unit_id: 3,
-    created_at: "2024-02-05T09:00:00Z",
-  },
-]
-
-const statusLabels = {
-  scheduled: "Programada",
-  completed: "Completada",
-  cancelled: "Cancelada",
-  no_show: "No asistió",
-}
-
+// Status
+const statusLabels: Record<AppointmentStatus, string> = appointmentStatusMap
 const statusColors = {
   scheduled: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   completed: "bg-green-500/10 text-green-500 border-green-500/20",
-  cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
+  canceled: "bg-red-500/10 text-red-500 border-red-500/20",
   no_show: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  requested: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
 }
 
 const specialties = [
@@ -162,143 +77,64 @@ const specialties = [
 ]
 
 export default function AppointmentsPage() {
+  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([])
+  const [patients, setPatients] = useState<PatientRes[]>([])
+  const [physicians, setPhysicians] = useState<PhysicianRes[]>([])
+  const [facilityUnits, setFacilityUnits] = useState<FacilityUnitRes[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFacility, setSelectedFacility] = useState<string>("all")
   const [selectedUnit, setSelectedUnit] = useState<string>("all")
-  const [appointments, setAppointments] = useState<Appointment[]>(appointmentsData)
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
-  const [appointmentForm, setAppointmentForm] = useState({
-    patient_id: 1,
-    physician_id: 1,
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null)
+  const [appointmentToDelete, setAppointmentToDelete] = useState<AppointmentWithDetails | null>(null)
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null)
+
+  // Form state: all values as string for inputs, convert to Date to send
+  const [appointmentForm, setAppointmentForm] = useState<{
+    patientId: number
+    physicianId?: number
+    motive: string
+    specialty: string
+    status: AppointmentStatus
+    start: string
+    end: string
+    facilityUnitId?: number
+  }>({
+    patientId: 0,
+    physicianId: undefined,
     motive: "",
-    specialty: "Medicina General",
-    status: "scheduled" as Appointment["status"],
+    specialty: specialties[2],
+    status: "scheduled",
     start: "",
     end: "",
-    facility_unit_id: 1,
+    facilityUnitId: undefined,
   })
 
-  const openAppointmentDialog = (appointment?: Appointment) => {
-    if (appointment) {
-      setEditingAppointment(appointment)
-      setAppointmentForm({
-        patient_id: appointment.patient_id,
-        physician_id: appointment.physician_id || 1,
-        motive: appointment.motive,
-        specialty: appointment.specialty,
-        status: appointment.status,
-        start: appointment.start.slice(0, 16),
-        end: appointment.end.slice(0, 16),
-        facility_unit_id: appointment.facility_unit_id || 1,
-      })
-    } else {
-      setEditingAppointment(null)
-      setAppointmentForm({
-        patient_id: 1,
-        physician_id: 1,
-        motive: "",
-        specialty: "Medicina General",
-        status: "scheduled",
-        start: "",
-        end: "",
-        facility_unit_id: 1,
-      })
+  useEffect(() => {
+    async function loadData() {
+      const [appointmentsData, patientsData, unitsData] = await Promise.all([
+        getAllAppointments(),
+        getAllPatients(),
+        getFacilityUnits(0),
+      ])
+      // Physicians: load as needed from your repo (not in DTO, but probably in /personal or similar)
+      setAppointments(appointmentsData)
+      setPatients(patientsData)
+      setFacilityUnits(unitsData)
     }
-    setAppointmentDialogOpen(true)
-  }
+    loadData()
+  }, [])
 
-  const saveAppointment = () => {
-    if (editingAppointment) {
-      setAppointments(
-        appointments.map((a) =>
-          a.id === editingAppointment.id
-            ? {
-                ...a,
-                ...appointmentForm,
-                start: new Date(appointmentForm.start).toISOString(),
-                end: new Date(appointmentForm.end).toISOString(),
-              }
-            : a,
-        ),
-      )
-    } else {
-      const newAppointment: Appointment = {
-        id: Math.max(...appointments.map((a) => a.id)) + 1,
-        ...appointmentForm,
-        start: new Date(appointmentForm.start).toISOString(),
-        end: new Date(appointmentForm.end).toISOString(),
-        calendar_item_id: null,
-        created_at: new Date().toISOString(),
-      }
-      setAppointments([...appointments, newAppointment])
-    }
-    setAppointmentDialogOpen(false)
-  }
+  // Helper: get patient full name from `appUserId` (if you want to show more, you can fetch AppUser details)
+  const getPatientFullName = (p: PatientRes) =>
+    p.appUserId || p.nationalId || p.phone || "Paciente"
 
-  const openDeleteDialog = (appointment: Appointment) => {
-    setAppointmentToDelete(appointment)
-    setDeleteDialogOpen(true)
-  }
-
-  const confirmDeleteAppointment = () => {
-    if (appointmentToDelete) {
-      setAppointments(appointments.filter((a) => a.id !== appointmentToDelete.id))
-      setDeleteDialogOpen(false)
-      setAppointmentToDelete(null)
-    }
-  }
-
-  const deleteAppointment = (id: number) => {
-    // This function is no longer directly used but kept for completeness if needed elsewhere
-    // The actual deletion is handled by confirmDeleteAppointment
-    console.log("Delete called directly on appointment", id)
-  }
-
-  const openDetailsDialog = (appointment: Appointment) => {
-    setSelectedAppointment(appointment)
-    setDetailsDialogOpen(true)
-  }
-
-  // Removed status change dialog, no longer needed
-  // const openStatusDialog = (appointment: Appointment) => {
-  //   setChangingStatusAppointment(appointment)
-  //   setNewStatus(appointment.status)
-  //   setStatusDialogOpen(true)
-  // }
-
-  // Removed status change function
-  // const changeAppointmentStatus = () => {
-  //   if (changingStatusAppointment) {
-  //     setAppointments(
-  //       appointments.map((a) => (a.id === changingStatusAppointment.id ? { ...a, status: newStatus } : a)),
-  //     )
-  //     setStatusDialogOpen(false)
-  //   }
-  // }
-
-  const getPatientName = (id: number) => {
-    return patientsData.find((p) => p.id === id)?.name || "Desconocido"
-  }
-
-  const getPhysicianName = (id: number | null) => {
-    if (!id) return "Sin asignar"
-    return physiciansData.find((p) => p.id === id)?.name || "Desconocido"
-  }
-
-  const getFacilityUnitName = (id: number | null) => {
-    if (!id) return "Sin asignar"
-    const unit = facilityUnitsData.find((u) => u.id === id)
-    return unit ? `${unit.name} - ${unit.facility_name}` : "Desconocido"
-  }
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString("es-NI", {
+  const formatDateTime = (date?: Date | string) => {
+    if (!date) return ""
+    const d = typeof date === "string" ? new Date(date) : date
+    return d.toLocaleString("es-NI", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -307,26 +143,98 @@ export default function AppointmentsPage() {
     })
   }
 
+  // Filtrado
   const filteredAppointments = appointments.filter((a) => {
     const matchesSearch =
-      getPatientName(a.patient_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getPhysicianName(a.physician_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.physicianName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.motive.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.specialty.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const unit = facilityUnitsData.find((u) => u.id === a.facility_unit_id)
-    const matchesFacility = selectedFacility === "all" || unit?.facility_name === selectedFacility
-    const matchesUnit = selectedUnit === "all" || a.facility_unit_id?.toString() === selectedUnit
+    const unit = facilityUnits.find((u) => u.name === a.facilityUnitName)
+    const matchesFacility = selectedFacility === "all" || unit?.facilityName === selectedFacility
+    const matchesUnit = selectedUnit === "all" || a.facilityUnitName === selectedUnit
 
     return matchesSearch && matchesFacility && matchesUnit
   })
 
-  const availableFacilities = Array.from(new Set(facilityUnitsData.map((u) => u.facility_name)))
-
+  const availableFacilities = Array.from(new Set(facilityUnits.map((u) => u.facilityName ?? "")))
   const availableUnits =
     selectedFacility === "all"
-      ? facilityUnitsData
-      : facilityUnitsData.filter((u) => u.facility_name === selectedFacility)
+      ? facilityUnits
+      : facilityUnits.filter((u) => u.facilityName === selectedFacility)
+
+  // Dialogs
+  const openAppointmentDialog = (appointment?: AppointmentWithDetails) => {
+    if (appointment) {
+      setEditingAppointment(appointment)
+      setAppointmentForm({
+        patientId: appointment.patientId,
+        physicianId: physicians.find((p) => p.adminUserId === appointment.physicianName)?.id,
+        motive: appointment.motive,
+        specialty: appointment.specialty,
+        status: appointment.status,
+        start: appointment.start ? appointment.start.toISOString().slice(0, 16) : "",
+        end: appointment.end ? appointment.end.toISOString().slice(0, 16) : "",
+        facilityUnitId: facilityUnits.find((u) => u.name === appointment.facilityUnitName)?.id,
+      })
+    } else {
+      setEditingAppointment(null)
+      setAppointmentForm({
+        patientId: patients[0]?.id ?? 0,
+        physicianId: physicians[0]?.id ?? undefined,
+        motive: "",
+        specialty: specialties[2],
+        status: "scheduled",
+        start: "",
+        end: "",
+        facilityUnitId: availableUnits[0]?.id ?? undefined,
+      })
+    }
+    setAppointmentDialogOpen(true)
+  }
+
+  const openDetailsDialog = (appointment: AppointmentWithDetails) => {
+    setSelectedAppointment(appointment)
+    setDetailsDialogOpen(true)
+  }
+
+  const openDeleteDialog = (appointment: AppointmentWithDetails) => {
+    setAppointmentToDelete(appointment)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteAppointment = async () => {
+    if (appointmentToDelete) {
+      await deleteAppointment(appointmentToDelete.id)
+      setAppointments(appointments.filter((a) => a.id !== appointmentToDelete.id))
+      setDeleteDialogOpen(false)
+      setAppointmentToDelete(null)
+    }
+  }
+
+  const saveAppointment = async () => {
+    const dto: CreateAppointmentReq = {
+      patientId: appointmentForm.patientId,
+      physicianId: appointmentForm.physicianId,
+      motive: appointmentForm.motive,
+      specialty: appointmentForm.specialty,
+      status: appointmentForm.status,
+      start: appointmentForm.start ? new Date(appointmentForm.start) : undefined,
+      end: appointmentForm.end ? new Date(appointmentForm.end) : undefined,
+      facilityUnitId: appointmentForm.facilityUnitId,
+    }
+    if (editingAppointment) {
+      await updateAppointment(editingAppointment.id, dto)
+      const updatedAppointments = await getAllAppointments()
+      setAppointments(updatedAppointments)
+    } else {
+      await createAppointment(dto)
+      const updatedAppointments = await getAllAppointments()
+      setAppointments(updatedAppointments)
+    }
+    setAppointmentDialogOpen(false)
+  }
 
   const openEditFromDetails = () => {
     if (selectedAppointment) {
@@ -334,6 +242,11 @@ export default function AppointmentsPage() {
       openAppointmentDialog(selectedAppointment)
     }
   }
+
+  const total = appointments.length
+  const scheduled = appointments.filter((a) => a.status === "scheduled").length
+  const completed = appointments.filter((a) => a.status === "completed").length
+  const canceled = appointments.filter((a) => a.status === "canceled" || a.status === "no_show").length
 
   return (
     <>
@@ -358,46 +271,37 @@ export default function AppointmentsPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{appointments.length}</div>
+              <div className="text-2xl font-bold text-primary">{total}</div>
               <p className="text-xs text-muted-foreground">Citas registradas</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Programadas</CardTitle>
               <Clock className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {appointments.filter((a) => a.status === "scheduled").length}
-              </div>
+              <div className="text-2xl font-bold text-blue-600">{scheduled}</div>
               <p className="text-xs text-muted-foreground">Pendientes de atención</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completadas</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {appointments.filter((a) => a.status === "completed").length}
-              </div>
+              <div className="text-2xl font-bold text-green-600">{completed}</div>
               <p className="text-xs text-muted-foreground">Atendidas</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Canceladas</CardTitle>
               <XCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {appointments.filter((a) => a.status === "cancelled" || a.status === "no_show").length}
-              </div>
+              <div className="text-2xl font-bold text-red-600">{canceled}</div>
               <p className="text-xs text-muted-foreground">No realizadas</p>
             </CardContent>
           </Card>
@@ -444,7 +348,7 @@ export default function AppointmentsPage() {
                   <SelectContent>
                     <SelectItem value="all">Todas las unidades</SelectItem>
                     {availableUnits.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.id.toString()}>
+                      <SelectItem key={unit.id} value={unit.name ?? ""}>
                         {unit.name}
                       </SelectItem>
                     ))}
@@ -476,10 +380,10 @@ export default function AppointmentsPage() {
               <TableBody>
                 {filteredAppointments.map((appointment) => (
                   <TableRow key={appointment.id}>
-                    <TableCell className="font-medium">{getPatientName(appointment.patient_id)}</TableCell>
+                    <TableCell className="font-medium">{appointment.patientName}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="font-medium">{getPhysicianName(appointment.physician_id)}</p>
+                        <p className="font-medium">{appointment.physicianName || "-"}</p>
                         <p className="text-sm text-muted-foreground">{appointment.specialty}</p>
                       </div>
                     </TableCell>
@@ -495,7 +399,7 @@ export default function AppointmentsPage() {
                       <Badge className={statusColors[appointment.status]}>{statusLabels[appointment.status]}</Badge>
                     </TableCell>
                     <TableCell className="text-sm max-w-[200px] truncate">
-                      {getFacilityUnitName(appointment.facility_unit_id)}
+                      {appointment.facilityUnitName || "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -530,6 +434,7 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
 
+        {/* Detalles */}
         <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -545,14 +450,14 @@ export default function AppointmentsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="details-patient">Paciente</Label>
-                      <Select value={selectedAppointment.patient_id.toString()} disabled>
+                      <Select value={selectedAppointment.patientId?.toString()} disabled>
                         <SelectTrigger id="details-patient">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {patientsData.map((patient) => (
+                          {patients.map((patient) => (
                             <SelectItem key={patient.id} value={patient.id.toString()}>
-                              {patient.name}
+                              {getPatientFullName(patient)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -560,14 +465,14 @@ export default function AppointmentsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="details-physician">Médico Asignado</Label>
-                      <Select value={selectedAppointment.physician_id?.toString() || "1"} disabled>
+                      <Select value={physicians.find((p) => p.adminUserId === selectedAppointment.physicianName)?.id?.toString() || ""} disabled>
                         <SelectTrigger id="details-physician">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {physiciansData.map((physician) => (
+                          {physicians.map((physician) => (
                             <SelectItem key={physician.id} value={physician.id.toString()}>
-                              {physician.name} - {physician.specialty}
+                              {physician.adminUserId} - {physician.specialty}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -575,7 +480,6 @@ export default function AppointmentsPage() {
                     </div>
                   </div>
                 </div>
-
                 <div className="rounded-lg border bg-muted/50 p-4">
                   <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                     Detalles de la Consulta
@@ -616,15 +520,15 @@ export default function AppointmentsPage() {
                           <SelectContent>
                             <SelectItem value="scheduled">Programada</SelectItem>
                             <SelectItem value="completed">Completada</SelectItem>
-                            <SelectItem value="cancelled">Cancelada</SelectItem>
+                            <SelectItem value="canceled">Cancelada</SelectItem>
                             <SelectItem value="no_show">No asistió</SelectItem>
+                            <SelectItem value="requested">Solicitada</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                   </div>
                 </div>
-
                 <div className="rounded-lg border bg-muted/50 p-4">
                   <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                     Fecha, Hora y Ubicación
@@ -636,7 +540,11 @@ export default function AppointmentsPage() {
                         <Input
                           id="details-start"
                           type="datetime-local"
-                          value={selectedAppointment.start.slice(0, 16)}
+                          value={
+                            selectedAppointment.start
+                              ? new Date(selectedAppointment.start).toISOString().slice(0, 16)
+                              : ""
+                          }
                           disabled
                         />
                       </div>
@@ -645,21 +553,25 @@ export default function AppointmentsPage() {
                         <Input
                           id="details-end"
                           type="datetime-local"
-                          value={selectedAppointment.end.slice(0, 16)}
+                          value={
+                            selectedAppointment.end
+                              ? new Date(selectedAppointment.end).toISOString().slice(0, 16)
+                              : ""
+                          }
                           disabled
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="details-unit">Unidad del Centro de Salud</Label>
-                      <Select value={selectedAppointment.facility_unit_id?.toString() || "1"} disabled>
+                      <Select value={facilityUnits.find((u) => u.name === selectedAppointment.facilityUnitName)?.id?.toString() || ""} disabled>
                         <SelectTrigger id="details-unit">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {facilityUnitsData.map((unit) => (
+                          {facilityUnits.map((unit) => (
                             <SelectItem key={unit.id} value={unit.id.toString()}>
-                              {unit.name} - {unit.facility_name}
+                              {unit.name} - {unit.facilityName}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -667,11 +579,10 @@ export default function AppointmentsPage() {
                     </div>
                   </div>
                 </div>
-
                 <div className="pt-2 border-t">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    <span>Creada el {formatDateTime(selectedAppointment.created_at)}</span>
+                    <span>Creada el {formatDateTime(selectedAppointment.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -688,6 +599,7 @@ export default function AppointmentsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Eliminar cita */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -695,7 +607,7 @@ export default function AppointmentsPage() {
               <AlertDialogDescription>
                 Esta acción no se puede deshacer. La cita de{" "}
                 <span className="font-semibold">
-                  {appointmentToDelete && getPatientName(appointmentToDelete.patient_id)}
+                  {appointmentToDelete && appointmentToDelete.patientName}
                 </span>{" "}
                 será eliminada permanentemente del sistema.
               </AlertDialogDescription>
@@ -709,6 +621,7 @@ export default function AppointmentsPage() {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Crear/editar cita */}
         <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -730,18 +643,18 @@ export default function AppointmentsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="appointment-patient">Paciente *</Label>
                     <Select
-                      value={appointmentForm.patient_id.toString()}
+                      value={appointmentForm.patientId?.toString() || ""}
                       onValueChange={(value) =>
-                        setAppointmentForm({ ...appointmentForm, patient_id: Number.parseInt(value) })
+                        setAppointmentForm({ ...appointmentForm, patientId: Number.parseInt(value) })
                       }
                     >
                       <SelectTrigger id="appointment-patient">
                         <SelectValue placeholder="Selecciona un paciente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {patientsData.map((patient) => (
+                        {patients.map((patient) => (
                           <SelectItem key={patient.id} value={patient.id.toString()}>
-                            {patient.name}
+                            {getPatientFullName(patient)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -750,18 +663,18 @@ export default function AppointmentsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="appointment-physician">Médico Asignado *</Label>
                     <Select
-                      value={appointmentForm.physician_id.toString()}
+                      value={appointmentForm.physicianId?.toString() || ""}
                       onValueChange={(value) =>
-                        setAppointmentForm({ ...appointmentForm, physician_id: Number.parseInt(value) })
+                        setAppointmentForm({ ...appointmentForm, physicianId: Number.parseInt(value) })
                       }
                     >
                       <SelectTrigger id="appointment-physician">
                         <SelectValue placeholder="Selecciona un médico" />
                       </SelectTrigger>
                       <SelectContent>
-                        {physiciansData.map((physician) => (
+                        {physicians.map((physician) => (
                           <SelectItem key={physician.id} value={physician.id.toString()}>
-                            {physician.name} - {physician.specialty}
+                            {physician.adminUserId} - {physician.specialty}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -769,7 +682,6 @@ export default function AppointmentsPage() {
                   </div>
                 </div>
               </div>
-
               <div className="rounded-lg border bg-muted/50 p-4">
                 <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                   Detalles de la Consulta
@@ -810,7 +722,7 @@ export default function AppointmentsPage() {
                       <Select
                         value={appointmentForm.status}
                         onValueChange={(value) =>
-                          setAppointmentForm({ ...appointmentForm, status: value as Appointment["status"] })
+                          setAppointmentForm({ ...appointmentForm, status: value as AppointmentStatus })
                         }
                       >
                         <SelectTrigger id="appointment-status">
@@ -819,15 +731,15 @@ export default function AppointmentsPage() {
                         <SelectContent>
                           <SelectItem value="scheduled">Programada</SelectItem>
                           <SelectItem value="completed">Completada</SelectItem>
-                          <SelectItem value="cancelled">Cancelada</SelectItem>
+                          <SelectItem value="canceled">Cancelada</SelectItem>
                           <SelectItem value="no_show">No asistió</SelectItem>
+                          <SelectItem value="requested">Solicitada</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </div>
               </div>
-
               <div className="rounded-lg border bg-muted/50 p-4">
                 <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
                   Fecha, Hora y Ubicación
@@ -856,18 +768,18 @@ export default function AppointmentsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="appointment-unit">Unidad del Centro de Salud *</Label>
                     <Select
-                      value={appointmentForm.facility_unit_id.toString()}
+                      value={appointmentForm.facilityUnitId?.toString() || ""}
                       onValueChange={(value) =>
-                        setAppointmentForm({ ...appointmentForm, facility_unit_id: Number.parseInt(value) })
+                        setAppointmentForm({ ...appointmentForm, facilityUnitId: Number.parseInt(value) })
                       }
                     >
                       <SelectTrigger id="appointment-unit">
                         <SelectValue placeholder="Selecciona una unidad" />
                       </SelectTrigger>
                       <SelectContent>
-                        {facilityUnitsData.map((unit) => (
+                        {facilityUnits.map((unit) => (
                           <SelectItem key={unit.id} value={unit.id.toString()}>
-                            {unit.name} - {unit.facility_name}
+                            {unit.name} - {unit.facilityName}
                           </SelectItem>
                         ))}
                       </SelectContent>
