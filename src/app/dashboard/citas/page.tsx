@@ -8,6 +8,7 @@ import {
   deleteAppointment,
   getAllPatients,
   getFacilityUnits,
+  getHealthcareFacilities,
   // No getPhysicians: use getAllPhysicians from your repo or replace with the correct function if needed
 } from "@/backend-api/apiService"
 import {
@@ -18,6 +19,7 @@ import {
   FacilityUnitRes,
   appointmentStatusMap,
   AppointmentStatus,
+  HealthcareFacilityRes
 } from "@/backend-api/dtos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -90,6 +92,8 @@ export default function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | null>(null)
   const [appointmentToDelete, setAppointmentToDelete] = useState<AppointmentWithDetails | null>(null)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null)
+  const [healthcareFacilities, setHealthcareFacilities] = useState<HealthcareFacilityRes[]>([])
+
 
   // Form state: all values as string for inputs, convert to Date to send
   const [appointmentForm, setAppointmentForm] = useState<{
@@ -112,20 +116,79 @@ export default function AppointmentsPage() {
     facilityUnitId: undefined,
   })
 
-  useEffect(() => {
-    async function loadData() {
-      const [appointmentsData, patientsData, unitsData] = await Promise.all([
+// Importa también getHealthcareFacilities al inicio del archivo:
+
+
+useEffect(() => {
+  async function loadData() {
+    try {
+      const [appointmentsData, patientsData, facilitiesData] = await Promise.all([
         getAllAppointments(),
         getAllPatients(),
-        getFacilityUnits(0),
+        getHealthcareFacilities(),
       ])
-      // Physicians: load as needed from your repo (not in DTO, but probably in /personal or similar)
       setAppointments(appointmentsData)
       setPatients(patientsData)
-      setFacilityUnits(unitsData)
+      setHealthcareFacilities(facilitiesData)
+      if (selectedFacility === "all") {
+        const allUnits = await Promise.all(
+          healthcareFacilities.map((f) => getFacilityUnits(f.id))
+        )
+        setFacilityUnits(allUnits.flat())
+        return
+      }
+
+      // Carga inicial: selecciona el primer centro si existe
+      if (facilitiesData.length > 0) {
+        const firstFacility = facilitiesData[0]
+        setSelectedFacility(firstFacility.name)
+
+        // Cargar las unidades del primer centro
+        const units = await getFacilityUnits(firstFacility.id)
+        setFacilityUnits(units)
+      }
+    } catch (err) {
+      console.error("Error al cargar datos:", err)
     }
-    loadData()
-  }, [])
+  }
+
+  loadData()
+}, [])
+
+useEffect(() => {
+  async function updateUnits() {
+    try {
+      // Si se selecciona "Todos los centros", obtenemos todas las unidades de todos los centros
+      if (selectedFacility === "all") {
+        const allUnitsArrays = await Promise.all(
+          healthcareFacilities.map((facility) => getFacilityUnits(facility.id))
+        )
+        setFacilityUnits(allUnitsArrays.flat())
+        return
+      }
+
+      // Si se selecciona un centro específico
+      const facility = healthcareFacilities.find((f) => f.name === selectedFacility)
+      if (!facility) {
+        setFacilityUnits([])
+        return
+      }
+
+      // Cargar las unidades del centro seleccionado
+      const units = await getFacilityUnits(facility.id)
+
+      // Agregamos manualmente una opción "Todas las unidades" al principio (opcional visual)
+      setFacilityUnits(units)
+    } catch (err) {
+      console.error("Error al actualizar unidades:", err)
+    }
+  }
+
+  updateUnits()
+}, [selectedFacility, healthcareFacilities])
+
+
+
 
   // Helper: get patient full name from `appUserId` (if you want to show more, you can fetch AppUser details)
   const getPatientFullName = (p: PatientRes) =>
@@ -326,29 +389,38 @@ export default function AppointmentsPage() {
               <div className="space-y-2">
                 <Label>Centro de Salud</Label>
                 <Select value={selectedFacility} onValueChange={setSelectedFacility}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los centros" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los centros</SelectItem>
-                    {availableFacilities.map((facility) => (
-                      <SelectItem key={facility} value={facility}>
-                        {facility}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione centro de salud" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los centros</SelectItem>
+                  {healthcareFacilities.map((facility) => (
+                    <SelectItem key={facility.id} value={facility.name}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               </div>
               <div className="space-y-2">
-                <Label>Unidad Médica</Label>
-                <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+                <Label>Unidades Medicas</Label>
+                <Select
+                  value={appointmentForm.facilityUnitId?.toString() ?? "all"}
+                  onValueChange={(value) =>
+                    setAppointmentForm((form) => ({
+                      ...form,
+                      facilityUnitId: value === "all" ? undefined : parseInt(value),
+                    }))
+                  }
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Todas las unidades" />
+                    <SelectValue placeholder="Seleccione unidad médica" />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem value="all">Todas las unidades</SelectItem>
-                    {availableUnits.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.name ?? ""}>
+                    {facilityUnits.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id.toString()}>
                         {unit.name}
                       </SelectItem>
                     ))}
