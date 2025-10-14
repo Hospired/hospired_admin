@@ -49,7 +49,7 @@ const data = {
       title: "Pacientes",
       url: "/dashboard/pacientes",
       icon: Users,
-      items: [
+      /*items: [
         {
           title: "Lista de Pacientes",
           url: "/dashboard/pacientes",
@@ -58,7 +58,7 @@ const data = {
           title: "Nuevo Paciente",
           url: "/dashboard/pacientes/nuevo",
         },
-      ],
+      ],*/
     },
     {
       title: "Citas",

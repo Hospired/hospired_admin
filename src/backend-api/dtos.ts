@@ -164,3 +164,58 @@ export type CreateFacilityUnitReq = {
   name: string;
   indications?: string;
 };
+
+ // Citas
+export type AppointmentStatus =
+  | "requested"
+  | "scheduled"
+  | "completed"
+  | "canceled"
+  | "no_show";
+
+/** Mapeo de estados de cita → texto legible en español */
+export const appointmentStatusMap: Record<AppointmentStatus, string> = {
+  requested: "Solicitada",
+  scheduled: "Programada",
+  completed: "Completada",
+  canceled: "Cancelada",
+  no_show: "No asistió",
+};
+export type CreateAppointmentReq = {
+  patientId: number;
+  physicianId?: number;
+  motive: string;
+  specialty: string;
+  status?: AppointmentStatus;
+  start?: Date;
+  end?: Date;
+  facilityUnitId?: number;
+};
+
+export type AppointmentRes = {
+  id: number;
+  patientId: number;
+  physicianId?: number;
+  motive: string;
+  specialty: string;
+  status: AppointmentStatus;
+  start?: Date;
+  end?: Date;
+  facilityUnitId?: number;
+  createdAt: Date;
+};
+
+export type AppointmentWithDetails = {
+  id: number;
+  patientId: number;
+  patientName: string;
+  physicianName?: string;
+  motive: string;
+  specialty: string;
+  status: AppointmentStatus;
+  facilityUnitName?: string;
+  facilityName?: string;
+  start?: Date;
+  end?: Date;
+  createdAt: Date;
+};

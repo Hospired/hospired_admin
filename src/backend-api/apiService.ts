@@ -11,7 +11,10 @@ import {
   CreateHealthcareFacilityReq,
   HealthcareFacilityRes,
   CreateFacilityUnitReq,
-  FacilityUnitRes
+  FacilityUnitRes,
+  CreateAppointmentReq,
+  AppointmentRes,
+  AppointmentWithDetails
 } from "./dtos";
 
 export async function createAdminUser(req: CreateAdminUserReq) {
@@ -200,8 +203,6 @@ export async function signOutUser() {
 
 //Pacientes
 
-// --- APP USERS ---
-
 export async function createAppUser(req: CreateAppUserReq) {
   const { data, error } = await supabase
     .from("app_users")
@@ -354,7 +355,7 @@ export async function getMunicipalities() {
   return data ?? [];
 }
 
-// 🏥 Crear una instalación de salud
+//Centros
 export async function createHealthcareFacility(req: CreateHealthcareFacilityReq) {
   const { data, error } = await supabase
     .from("healthcare_facilities")
@@ -389,7 +390,6 @@ export async function createHealthcareFacility(req: CreateHealthcareFacilityReq)
   } as HealthcareFacilityRes;
 }
 
-// 🏥 Obtener todas las instalaciones de salud con municipio y departamento
 export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]> {
   const { data, error } = await supabase
     .from("healthcare_facilities")
@@ -431,7 +431,6 @@ export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]
   }));
 }
 
-// 🏥 Obtener una instalación específica
 export async function getHealthcareFacilityById(id: number): Promise<HealthcareFacilityRes | null> {
   const { data, error } = await supabase
     .from("healthcare_facilities")
@@ -465,9 +464,8 @@ export async function getHealthcareFacilityById(id: number): Promise<HealthcareF
   };
 }
 
-/* ---------------------------- FACILITY UNITS ---------------------------- */
+//Unidades
 
-// 🧩 Crear una unidad dentro de una instalación
 export async function createFacilityUnit(req: CreateFacilityUnitReq) {
   const { data, error } = await supabase
     .from("facility_units")
@@ -490,7 +488,6 @@ export async function createFacilityUnit(req: CreateFacilityUnitReq) {
   } as FacilityUnitRes;
 }
 
-// 🧩 Obtener unidades de una instalación
 export async function getFacilityUnits(facilityId: number): Promise<FacilityUnitRes[]> {
   const { data, error } = await supabase
     .from("facility_units")
@@ -515,4 +512,132 @@ export async function getFacilityUnits(facilityId: number): Promise<FacilityUnit
     createdAt: new Date(u.created_at),
     facilityName: u.healthcare_facilities?.name ?? "",
   }));
+}
+
+// --- APPOINTMENTS ---
+
+export async function createAppointment(req: CreateAppointmentReq): Promise<AppointmentRes> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .insert({
+      patient_id: req.patientId,
+      physician_id: req.physicianId ?? null,
+      motive: req.motive,
+      specialty: req.specialty,
+      status: req.status ?? "requested",
+      start: req.start ? req.start.toISOString() : null,
+      end: req.end ? req.end.toISOString() : null,
+      facility_unit_id: req.facilityUnitId ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Error al crear cita: ${error.message}`);
+
+  return {
+    id: data.id,
+    patientId: data.patient_id,
+    physicianId: data.physician_id ?? undefined,
+    motive: data.motive,
+    specialty: data.specialty,
+    status: data.status,
+    start: data.start ? new Date(data.start) : undefined,
+    end: data.end ? new Date(data.end) : undefined,
+    facilityUnitId: data.facility_unit_id ?? undefined,
+    createdAt: new Date(data.created_at),
+  };
+}
+
+export async function getAllAppointments(): Promise<AppointmentWithDetails[]> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(`
+      id,
+      patient_id,
+      physician_id,
+      motive,
+      specialty,
+      status,
+      start,
+      end,
+      facility_unit_id,
+      created_at,
+      patients (
+        id,
+        app_users (
+          first_name,
+          second_name,
+          first_last_name,
+          second_last_name
+        )
+      ),
+      physicians (
+        id,
+        admin_users (
+          first_name,
+          second_name,
+          first_last_name,
+          second_last_name
+        )
+      ),
+      facility_units (
+        id,
+        name,
+        healthcare_facilities (
+          id,
+          name
+        )
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener citas: ${error.message}`);
+
+  return (data ?? []).map((a: any) => ({
+    id: a.id,
+    patientId: a.patient_id,
+    physicianId: a.physician_id ?? undefined,
+    motive: a.motive,
+    specialty: a.specialty,
+    status: a.status,
+    start: a.start ? new Date(a.start) : undefined,
+    end: a.end ? new Date(a.end) : undefined,
+    facilityUnitId: a.facility_unit_id ?? undefined,
+    facilityUnitName: a.facility_units?.name ?? "",
+    facilityName: a.facility_units?.healthcare_facilities?.name ?? "",
+    patientName: `${a.patients?.app_users?.first_name ?? ""} ${a.patients?.app_users?.second_name ?? ""} ${a.patients?.app_users?.first_last_name ?? ""} ${a.patients?.app_users?.second_last_name ?? ""}`.trim(),
+    physicianName: a.physicians
+      ? `${a.physicians?.admin_users?.first_name ?? ""} ${a.physicians?.admin_users?.first_last_name ?? ""}`.trim()
+      : undefined,
+    createdAt: new Date(a.created_at),
+  }));
+}
+
+export async function updateAppointment(
+  id: number,
+  updates: Partial<CreateAppointmentReq>
+): Promise<void> {
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      physician_id: updates.physicianId ?? null,
+      motive: updates.motive,
+      specialty: updates.specialty,
+      status: updates.status,
+      start: updates.start ? updates.start.toISOString() : null,
+      end: updates.end ? updates.end.toISOString() : null,
+      facility_unit_id: updates.facilityUnitId ?? null,
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(`Error al actualizar cita: ${error.message}`);
+}
+
+export async function deleteAppointment(id: number): Promise<void> {
+  const { error } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(`Error al eliminar cita: ${error.message}`);
 }
