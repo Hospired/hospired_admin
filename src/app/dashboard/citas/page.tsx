@@ -307,6 +307,13 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
     setConfirmationDialogOpen(true);
   };
 
+  const openEditFromDetails = () => {
+    if (selectedAppointment) {
+      setDetailsDialogOpen(false);
+      openAppointmentDialog(selectedAppointment);
+    }
+  };
+
   const handleCloseCreateDialog = () => {
     setCreateDialogOpen(false);
     setAppointmentForm({
@@ -674,11 +681,12 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
               </div>
             )}
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancelar
+              <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+                Cerrar
               </Button>
-              <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
-                Crear Cita
+              <Button onClick={openEditFromDetails} className="gap-2">
+                <Edit className="h-4 w-4" />
+                Editar      
               </Button>
             </DialogFooter>
           </DialogContent>
