@@ -198,7 +198,6 @@ export type AppointmentStatus =
   | "canceled"
   | "no_show";
 
-/** Mapeo de estados de cita → texto legible en español */
 export const appointmentStatusMap: Record<AppointmentStatus, string> = {
   requested: "Solicitada",
   scheduled: "Programada",

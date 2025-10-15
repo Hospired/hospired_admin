@@ -396,6 +396,14 @@ export async function getAllPatients() {
   }));
 }
 
+export async function deletePatient(id: string | number) {
+  const res = await fetch(`/api/patients/${id}`, {
+    method: "DELETE",
+  })
+  if (!res.ok) throw new Error("No se pudo eliminar el paciente")
+  return true
+}
+
 export async function getMunicipalities() {
   const { data, error } = await supabase
     .from("municipalities")
@@ -633,6 +641,35 @@ export async function getAllAppointments(): Promise<AppointmentWithDetails[]> {
       : undefined,
     createdAt: new Date(a.created_at),
   }));
+}
+
+export async function getAppointmentsByPatientId(patientId: number) {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(`
+      id,
+      start,
+      end,
+      motive,
+      specialty,
+      status,
+      created_at,
+      physician_id,
+      physicians (
+        id,
+        admin_user_id,
+        national_id,
+        license_id,
+        specialty,
+        public_email,
+        phone_number
+      )
+    `)
+    .eq("patient_id", patientId)
+    .order("start", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener citas: ${error.message}`);
+  return data ?? [];
 }
 
 export async function updateAppointment(

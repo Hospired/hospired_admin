@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getAllPatients } from "@/backend-api/apiService"
-import { PatientWithUser } from "@/backend-api/dtos"
+import { getAllPatients, deletePatient, getAppointmentsByPatientId } from "@/backend-api/apiService"
+import { PatientWithUser, medicalSpecialtyMap, appointmentStatusMap, AppointmentStatus } from "@/backend-api/dtos"
 
 import {
   Card,
@@ -53,6 +53,9 @@ export default function PacientesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [deletingPatient, setDeletingPatient] = useState<PatientWithUser | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [deleteResult, setDeleteResult] = useState<null | "success" | "error">(null)
+  const [isResultOpen, setIsResultOpen] = useState(false)
+  const [appointments, setAppointments] = useState<any[]>([])
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -100,9 +103,18 @@ export default function PacientesPage() {
       return 0
     })
 
-  const handleViewDetails = (p: PatientWithUser) => {
+  const handleViewDetails = async (p: PatientWithUser) => {
     setSelectedPatient(p)
     setIsDetailOpen(true)
+    try {
+      console.log("ID paciente para citas:", p.id)
+      const data = await getAppointmentsByPatientId(p.id)
+      console.log("Citas obtenidas:", data)
+      setAppointments(data)
+    } catch (err) {
+      setAppointments([])
+      console.error("Error obteniendo citas:", err)
+    }
   }
 
   const handleDelete = (p: PatientWithUser) => {
@@ -110,9 +122,19 @@ export default function PacientesPage() {
     setIsDeleteOpen(true)
   }
 
-  const confirmDelete = () => {
-    console.log("Deleting:", deletingPatient?.id)
+  const confirmDelete = async () => {
+    if (!deletingPatient) return
+    try {
+      await deletePatient(deletingPatient.id)
+      setPatients(prev => prev.filter(p => p.id !== deletingPatient.id))
+      setDeleteResult("success")
+    } catch (err) {
+      console.error("Error eliminando paciente:", err)
+      setDeleteResult("error")
+    }
     setIsDeleteOpen(false)
+    setDeletingPatient(null)
+    setIsResultOpen(true)
   }
 
   const handleEdit = (p: PatientWithUser) => {
@@ -198,7 +220,7 @@ export default function PacientesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewDetails(p) }}>
-                            <Eye className="mr-2 h-4 w-4" /> Ver Perfil
+                            <Eye className="mr-2 h-4 w-4" /> Expediente
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(p) }}>
                             <Edit className="mr-2 h-4 w-4" /> Editar
@@ -219,67 +241,176 @@ export default function PacientesPage() {
       </Card>
 
       {/* Sheet detalle */}
-      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="text-2xl">Perfil del Paciente</SheetTitle>
-            <SheetDescription>Información detallada del paciente</SheetDescription>
-          </SheetHeader>
+<Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+  <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+    <SheetHeader>
+      <SheetTitle className="text-2xl">Expediente del paciente</SheetTitle>
+      <SheetDescription>Información detallada del paciente</SheetDescription>
+    </SheetHeader>
 
-          {selectedPatient && (
-            <div className="mt-6 space-y-6">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                      <User className="h-8 w-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold">{selectedPatient.fullName}</h3>
-                      <p className="text-sm text-muted-foreground">{selectedPatient.nationalId}</p>
-                      <p className="text-sm text-muted-foreground">Edad: {calculateAge(selectedPatient.dateOfBirth)} años</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Phone className="h-5 w-5" /> Contacto
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p><strong>Teléfono:</strong> {selectedPatient.phone}</p>
-                  <p><strong>Dirección:</strong> {selectedPatient.address}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Briefcase className="h-5 w-5" /> Ocupación
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{selectedPatient.occupation}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <ClipboardList className="h-5 w-5" /> Notas Médicas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed">{selectedPatient.medicalNotes || "Sin notas registradas."}</p>
-                </CardContent>
-              </Card>
+    {selectedPatient && (
+      <div className="mt-6 space-y-6">
+        {/* Avatar, nombre y edad */}
+        <div className="flex items-center gap-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+            <User className="h-10 w-10 text-primary" />
+          </div>
+          <div className="flex-1">
+            <Input
+              value={selectedPatient.fullName}
+              readOnly
+              className="mb-2 font-bold text-xl"
+              aria-label="Nombre Completo"
+            />
+            <div className="flex gap-2">
+              <Input
+                value={selectedPatient.nationalId}
+                readOnly
+                className="w-1/2"
+                aria-label="Cédula"
+                placeholder="Cédula"
+              />
+              <Input
+                value={calculateAge(selectedPatient.dateOfBirth) + " años"}
+                readOnly
+                className="w-1/2"
+                aria-label="Edad"
+                placeholder="Edad"
+              />
             </div>
-          )}
-        </SheetContent>
-      </Sheet>
+          </div>
+        </div>
+
+        {/* Sección: Información General */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Información General</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground">ID</label>
+              <Input value={selectedPatient.id} readOnly />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">INSS</label>
+              <Input value={selectedPatient.inss} readOnly />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Fecha de Nacimiento</label>
+              <Input value={selectedPatient.dateOfBirth ? selectedPatient.dateOfBirth.toLocaleDateString() : "—"} readOnly />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Fecha de Registro</label>
+              <Input value={selectedPatient.createdAt.toLocaleDateString()} readOnly />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sección: Contacto */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Phone className="h-5 w-5" /> Contacto
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground">Teléfono</label>
+              <Input value={selectedPatient.phone} readOnly />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Dirección</label>
+              <Input value={selectedPatient.address || "—"} readOnly />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sección: Ubicación */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              Ubicación
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground">Municipio</label>
+              <Input value={selectedPatient.municipalityName || "—"} readOnly />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Departamento</label>
+              <Input value={selectedPatient.department || "—"} readOnly />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sección: Ocupación */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5" /> Ocupación
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Input value={selectedPatient.occupation || "—"} readOnly />
+          </CardContent>
+        </Card>
+
+        {/* Sección: Notas Médicas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClipboardList className="h-5 w-5" /> Notas Médicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Input
+              value={selectedPatient.medicalNotes || "Sin notas registradas."}
+              readOnly
+              className="font-normal"
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2 text-lg">
+      <ClipboardList className="h-5 w-5" /> Historial de Citas
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    {appointments.length === 0 ? (
+      <span className="text-muted-foreground">Sin citas registradas.</span>
+    ) : (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Médico</TableHead>
+            <TableHead>Especialidad</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead>Motivo</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {appointments.map((a) => (
+            <TableRow key={a.id}>
+              <TableCell>{a.start ? new Date(a.start).toLocaleString() : "—"}</TableCell>
+              <TableCell>{a.physicians?.public_email || "—"}</TableCell>
+              <TableCell>{medicalSpecialtyMap[a.specialty] || a.specialty}</TableCell>
+              <TableCell>{appointmentStatusMap[a.status as AppointmentStatus] || a.status}</TableCell>
+              <TableCell>{a.motive || "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )}
+  </CardContent>
+</Card>
+      </div>
+    )}
+  </SheetContent>
+</Sheet>
 
       {/* Dialog eliminar */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
@@ -297,6 +428,25 @@ export default function PacientesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={confirmDelete}>Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {deleteResult === "success" ? "Paciente eliminado" : "Error al eliminar"}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteResult === "success"
+                ? "El paciente fue eliminado correctamente."
+                : "No se pudo eliminar el paciente. Por favor, inténtalo de nuevo."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setIsResultOpen(false)}>
+              Cerrar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
