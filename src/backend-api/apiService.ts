@@ -193,7 +193,6 @@ export async function getAllPhysicians(): Promise<PhysicianWithAdminUser[]> {
 
 //User
 
-
 export async function getAuthUser() {
   const { data, error } = await supabase.auth.getUser();
 
@@ -219,6 +218,15 @@ export async function signUpUser(email: string, password: string) {
   }
 
   return data;
+}
+
+export async function invitePatientUser(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+  if (error) throw error;
+  return { user: data.user }; // <--- aquí accedes correctamente al usuario
 }
 
 export async function signInUser(email: string, password: string) {

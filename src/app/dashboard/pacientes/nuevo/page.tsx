@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   Mail,
 } from "lucide-react"
-import { signUpUser, createAppUser, createPatient, getMunicipalities } from "@/backend-api/apiService"
+import { invitePatientUser, createAppUser, createPatient, getMunicipalities } from "@/backend-api/apiService"
+import { supabase } from "@/lib/supabaseClient"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type Municipality = {
@@ -147,11 +148,17 @@ export default function NuevoPacientePage() {
 
       setPatientEmail(email)
 
-      // 🔹 Crear usuario de autenticación
-      const { user } = await signUpUser(email, generatedPassword)
+      // 1. Crear usuario con contraseña temporal
+      // invitePatientUser retorna { user: data.user }
+      const { user } = await invitePatientUser(email, generatedPassword)
       if (!user) throw new Error("No se pudo crear el usuario de autenticación")
 
-      // 🔹 Crear registro en AppUser
+      // 2. Enviar correo de recuperación para que el usuario defina su contraseña
+      const redirectTo = "http://localhost:3000/auth/reset-password"
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (resetError) throw resetError
+
+      // 3. Crear registro en AppUser
       await createAppUser({
         id: user.id,
         firstName,
@@ -162,7 +169,7 @@ export default function NuevoPacientePage() {
         avatar: avatarPreview || undefined,
       })
 
-      // 🔹 Crear registro en Patient
+      // 4. Crear registro en Patient
       await createPatient({
         appUserId: user.id,
         nationalId: nationalId || "",
@@ -371,7 +378,7 @@ export default function NuevoPacientePage() {
 
               <div className="flex justify-center gap-2 text-muted-foreground mt-2">
                 <Mail className="h-5 w-5" />
-                Se envió un correo a{" "}
+                Se envió un correo de activación y recuperación de contraseña a{" "}
                 <span className="font-semibold text-foreground">{patientEmail}</span>.
               </div>
           </DialogHeader>
