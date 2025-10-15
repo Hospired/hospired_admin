@@ -21,7 +21,8 @@ import {
   AppointmentStatus,
   HealthcareFacilityRes,
   PatientWithUser,
-  PhysicianWithAdminUser
+  PhysicianWithAdminUser,
+  medicalSpecialtyMap
 } from "@/backend-api/dtos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -69,18 +70,6 @@ const statusColors = {
   requested: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
 }
 
-const specialties = [
-  "Cardiología",
-  "Pediatría",
-  "Medicina General",
-  "Ginecología",
-  "Traumatología",
-  "Dermatología",
-  "Oftalmología",
-  "Neurología",
-]
-
-
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([])
   const [patients, setPatients] = useState<PatientWithUser[]>([])
@@ -97,6 +86,10 @@ export default function AppointmentsPage() {
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null)
   const [healthcareFacilities, setHealthcareFacilities] = useState<HealthcareFacilityRes[]>([])
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const specialtyOptions = Object.entries(medicalSpecialtyMap);
+  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
+const [confirmationMessage, setConfirmationMessage] = useState("");
+const [confirmationType, setConfirmationType] = useState<"success" | "error">("success");
 
   const [appointmentForm, setAppointmentForm] = useState<{
     patientId: number
@@ -111,7 +104,7 @@ export default function AppointmentsPage() {
     patientId: 0,
     physicianId: undefined,
     motive: "",
-    specialty: specialties[2],
+    specialty: "",
     status: "scheduled",
     start: "",
     end: "",
@@ -286,18 +279,27 @@ export default function AppointmentsPage() {
       start: appointmentForm.start ? new Date(appointmentForm.start) : undefined,
       end: appointmentForm.end ? new Date(appointmentForm.end) : undefined,
       facilityUnitId: appointmentForm.facilityUnitId,
+    };
+    try {
+      if (editingAppointment) {
+        await updateAppointment(editingAppointment.id, dto);
+        setConfirmationType("success");
+        setConfirmationMessage("La cita fue editada correctamente.");
+      } else {
+        await createAppointment(dto);
+        setConfirmationType("success");
+        setConfirmationMessage("La cita fue creada correctamente.");
+      }
+      const updatedAppointments = await getAllAppointments();
+      setAppointments(updatedAppointments);
+      setAppointmentDialogOpen(false);
+    } catch (error) {
+      setConfirmationType("error");
+      setConfirmationMessage("No se pudo editar la cita. Intenta nuevamente.");
+      setAppointmentDialogOpen(false);
     }
-    if (editingAppointment) {
-      await updateAppointment(editingAppointment.id, dto)
-      const updatedAppointments = await getAllAppointments()
-      setAppointments(updatedAppointments)
-    } else {
-      await createAppointment(dto)
-      const updatedAppointments = await getAllAppointments()
-      setAppointments(updatedAppointments)
-    }
-    setAppointmentDialogOpen(false)
-  }
+    setConfirmationDialogOpen(true);
+  };
 
   const openEditFromDetails = () => {
     if (selectedAppointment) {
@@ -456,7 +458,7 @@ export default function AppointmentsPage() {
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-medium">{appointment.physicianName || "-"}</p>
-                        <p className="text-sm text-muted-foreground">{appointment.specialty}</p>
+                        <p className="text-sm text-muted-foreground">{medicalSpecialtyMap[appointment.specialty] || appointment.specialty}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -465,7 +467,9 @@ export default function AppointmentsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{appointment.specialty}</Badge>
+                      <Badge variant="outline">
+                        {medicalSpecialtyMap[appointment.specialty] || appointment.specialty}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[appointment.status]}>{statusLabels[appointment.status]}</Badge>
@@ -554,18 +558,11 @@ export default function AppointmentsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="details-specialty">Especialidad</Label>
-                        <Select value={selectedAppointment.specialty} disabled>
-                          <SelectTrigger id="details-specialty">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {specialties.map((specialty) => (
-                              <SelectItem key={specialty} value={specialty}>
-                                {specialty}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="details-specialty"
+                          value={medicalSpecialtyMap[selectedAppointment.specialty] || selectedAppointment.specialty}
+                          disabled
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="details-status">Estado</Label>
@@ -752,9 +749,9 @@ export default function AppointmentsPage() {
                           <SelectValue placeholder="Selecciona especialidad" />
                         </SelectTrigger>
                         <SelectContent>
-                          {specialties.map((specialty) => (
-                            <SelectItem key={specialty} value={specialty}>
-                              {specialty}
+                          {specialtyOptions.map(([en, es]) => (
+                            <SelectItem key={en} value={en}>
+                              {es}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -837,6 +834,25 @@ export default function AppointmentsPage() {
               </Button>
               <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
                 {editingAppointment ? "Guardar Cambios" : "Crear Cita"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/*Modal de confirmación*/}
+        <Dialog open={confirmationDialogOpen} onOpenChange={setConfirmationDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                {confirmationType === "success" ? "¡Éxito!" : "Error"}
+              </DialogTitle>
+              <DialogDescription>
+                {confirmationMessage}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setConfirmationDialogOpen(false)} autoFocus>
+                Cerrar
               </Button>
             </DialogFooter>
           </DialogContent>
