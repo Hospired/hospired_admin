@@ -404,6 +404,30 @@ export async function deletePatient(id: string | number) {
   return true
 }
 
+export async function updatePatient(id: number, data: {
+  nationalId: string;
+  inss: number;
+  phone: string;
+  occupation?: string;
+  address: string;
+  medicalNotes?: string;
+  municipalityId?: number;
+}) {
+  const { error } = await supabase
+    .from("patients")
+    .update({
+      national_id: data.nationalId,
+      inss_id: data.inss,
+      phone_number: data.phone,
+      occupation: data.occupation ?? null,
+      neighborhood: data.address,
+      medical_notes: data.medicalNotes ?? null,
+      municipality_id: data.municipalityId ?? null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function getMunicipalities() {
   const { data, error } = await supabase
     .from("municipalities")
