@@ -102,6 +102,7 @@ export default function HealthcareFacilitiesAndUnitsPage() {
   async function loadUnits(facilityId: number) {
     try {
       setLoadingUnits(true);
+      setUnits([]); // <--- Vacía el array al iniciar la carga
       const unitsData = await getFacilityUnits(facilityId);
       setUnits(unitsData);
     } catch (error: any) {
@@ -284,7 +285,6 @@ export default function HealthcareFacilitiesAndUnitsPage() {
               <DialogTrigger asChild>
                 <Button
                   className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
-                  disabled={!selectedFacilityId}
                 >
                   <Plus className="w-4 h-4 mr-2" /> Nueva unidad
                 </Button>
@@ -355,7 +355,7 @@ export default function HealthcareFacilitiesAndUnitsPage() {
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Unidades médicas:</span>
-                      <Badge variant="outline">{units.length}</Badge>
+                      <Badge variant="outline">{facility.unitsCount}</Badge>
                     </div>
                   </CardContent>
                 </Card>

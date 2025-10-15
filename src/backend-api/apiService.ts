@@ -451,6 +451,9 @@ export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]
       municipalities (
         name,
         department
+      ),
+      facility_units (
+        id
       )
     `)
     .order("created_at", { ascending: false });
@@ -471,40 +474,8 @@ export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]
     createdAt: new Date(f.created_at),
     municipalityName: f.municipalities?.name ?? "",
     department: f.municipalities?.department ?? "",
+    unitsCount: f.facility_units ? f.facility_units.length : 0 // <-- NUEVO
   }));
-}
-
-export async function getHealthcareFacilityById(id: number): Promise<HealthcareFacilityRes | null> {
-  const { data, error } = await supabase
-    .from("healthcare_facilities")
-    .select(`
-      *,
-      municipalities (
-        name,
-        department
-      )
-    `)
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(`Error al obtener instalación: ${error.message}`);
-  if (!data) return null;
-
-  return {
-    id: data.id,
-    name: data.name,
-    servesInss: data.serves_inss,
-    isPublicMinsa: data.is_public_minsa,
-    address: data.address,
-    district: data.district,
-    municipalityId: data.municipality_id,
-    latitude: data.latitude,
-    longitude: data.longitude,
-    notes: data.notes ?? undefined,
-    createdAt: new Date(data.created_at),
-    municipalityName: data.municipalities?.name ?? "",
-    department: data.municipalities?.department ?? "",
-  };
 }
 
 //Unidades

@@ -159,6 +159,7 @@ export type HealthcareFacilityRes = {
   createdAt: Date;
   municipalityName?: string;
   department?: string;
+  unitsCount: number;
 };
 
 export type CreateHealthcareFacilityReq = {
