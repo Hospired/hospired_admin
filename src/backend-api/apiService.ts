@@ -14,7 +14,8 @@ import {
   FacilityUnitRes,
   CreateAppointmentReq,
   AppointmentRes,
-  AppointmentWithDetails
+  AppointmentWithDetails,
+  PhysicianWithAdminUser
 } from "./dtos";
 
 export async function createAdminUser(req: CreateAdminUserReq) {
@@ -149,6 +150,48 @@ export async function getPhysicianById(physicianId: number): Promise<PhysicianRe
     createdAt: new Date(data.created_at),
   };
 }
+
+export async function getAllPhysicians(): Promise<PhysicianWithAdminUser[]> {
+  const { data, error } = await supabase
+    .from("physicians")
+    .select(`
+      id,
+      admin_user_id,
+      national_id,
+      license_id,
+      specialty,
+      public_email,
+      phone_number,
+      notes,
+      created_at,
+      admin_users (
+        first_name,
+        second_name,
+        first_last_name,
+        second_last_name
+      )
+    `);
+
+  if (error) throw new Error(`Error al obtener médicos: ${error.message}`);
+
+  return (data ?? []).map((p: any) => ({
+    id: p.id,
+    adminUserId: p.admin_user_id,
+    nationalId: p.national_id,
+    licenseId: p.license_id,
+    specialty: p.specialty,
+    public_email: p.public_email,
+    phone_number: p.phone_number,
+    notes: p.notes ?? undefined,
+    createdAt: new Date(p.created_at),
+    firstName: p.admin_users?.first_name ?? "",
+    secondName: p.admin_users?.second_name ?? "",
+    firstLastName: p.admin_users?.first_last_name ?? "",
+    secondLastName: p.admin_users?.second_last_name ?? "",
+  }));
+}
+
+//User
 
 
 export async function getAuthUser() {

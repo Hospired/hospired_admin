@@ -47,6 +47,13 @@ export type PhysicianRes = {
   createdAt: Date;
 };
 
+export type PhysicianWithAdminUser = PhysicianRes & {
+  firstName: string;
+  secondName?: string;
+  firstLastName: string;
+  secondLastName?: string;
+};
+
 export const medicalSpecialtyMap: Record<string, string> = {
   "General Practice": "Medicina General",
   "Internal Medicine": "Medicina Interna",

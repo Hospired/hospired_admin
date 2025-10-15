@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   getAllAppointments,
   createAppointment,
@@ -9,7 +9,7 @@ import {
   getAllPatients,
   getFacilityUnits,
   getHealthcareFacilities,
-  // No getPhysicians: use getAllPhysicians from your repo or replace with the correct function if needed
+  getAllPhysicians
 } from "@/backend-api/apiService"
 import {
   AppointmentWithDetails,
@@ -20,7 +20,8 @@ import {
   appointmentStatusMap,
   AppointmentStatus,
   HealthcareFacilityRes,
-  PatientWithUser
+  PatientWithUser,
+  PhysicianWithAdminUser
 } from "@/backend-api/dtos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -83,7 +84,7 @@ const specialties = [
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([])
   const [patients, setPatients] = useState<PatientWithUser[]>([])
-  const [physicians, setPhysicians] = useState<PhysicianRes[]>([])
+  const [physicians, setPhysicians] = useState<PhysicianWithAdminUser[]>([]);
   const [facilityUnits, setFacilityUnits] = useState<FacilityUnitRes[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFacility, setSelectedFacility] = useState<string>("all")
@@ -190,12 +191,16 @@ useEffect(() => {
   updateUnits()
 }, [selectedFacility, healthcareFacilities])
 
-
-
-
-  // Helper: get patient full name from `appUserId` (if you want to show more, you can fetch AppUser details)
-  const getPatientFullName = (p: PatientRes) =>
-    p.appUserId || p.nationalId || p.phone || "Paciente"
+useEffect(() => {
+  if (appointmentDialogOpen) {
+    getAllPhysicians()
+      .then((res) => setPhysicians(res))
+      .catch((err) => {
+        console.error("Error obteniendo médicos:", err);
+        setPhysicians([]); // fallback vacío
+      });
+  }
+}, [appointmentDialogOpen]);
 
   const formatDateTime = (date?: Date | string) => {
     if (!date) return ""
@@ -229,23 +234,34 @@ useEffect(() => {
     selectedFacility === "all"
       ? facilityUnits
       : facilityUnits.filter((u) => u.facilityName === selectedFacility)
+  
+      function getFullName(physician: PhysicianWithAdminUser) {
+        return [physician.firstName, physician.secondName, physician.firstLastName, physician.secondLastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+      }
 
   // Dialogs
   const openAppointmentDialog = (appointment?: AppointmentWithDetails) => {
     if (appointment) {
-      setEditingAppointment(appointment)
+      setEditingAppointment(appointment);
+      // Buscar el médico por el nombre
+      const physician = physicians.find(
+        (p) => getFullName(p) === appointment.physicianName
+      );
       setAppointmentForm({
         patientId: appointment.patientId,
-        physicianId: physicians.find((p) => p.adminUserId === appointment.physicianName)?.id,
+        physicianId: physician?.id, // puede ser undefined si no hay match, eso es seguro para el select
         motive: appointment.motive,
         specialty: appointment.specialty,
         status: appointment.status,
         start: appointment.start ? appointment.start.toISOString().slice(0, 16) : "",
         end: appointment.end ? appointment.end.toISOString().slice(0, 16) : "",
         facilityUnitId: facilityUnits.find((u) => u.name === appointment.facilityUnitName)?.id,
-      })
+      });
     } else {
-      setEditingAppointment(null)
+      setEditingAppointment(null);
       setAppointmentForm({
         patientId: patients[0]?.id ?? 0,
         physicianId: physicians[0]?.id ?? undefined,
@@ -255,10 +271,10 @@ useEffect(() => {
         start: "",
         end: "",
         facilityUnitId: availableUnits[0]?.id ?? undefined,
-      })
+      });
     }
-    setAppointmentDialogOpen(true)
-  }
+    setAppointmentDialogOpen(true);
+  };
 
   const openDetailsDialog = (appointment: AppointmentWithDetails) => {
     setSelectedAppointment(appointment)
@@ -532,18 +548,10 @@ useEffect(() => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="details-physician">Médico Asignado</Label>
-                      <Select value={physicians.find((p) => p.adminUserId === selectedAppointment.physicianName)?.id?.toString() || ""} disabled>
-                        <SelectTrigger id="details-physician">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {physicians.map((physician) => (
-                            <SelectItem key={physician.id} value={physician.id.toString()}>
-                              {physician.adminUserId} - {physician.specialty}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        value={selectedAppointment?.physicianName || "Médico no asignado"}
+                        disabled
+                      />
                     </div>
                   </div>
                 </div>
@@ -716,23 +724,23 @@ useEffect(() => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="appointment-physician">Médico Asignado *</Label>
-                    <Select
-                      value={appointmentForm.physicianId?.toString() || ""}
-                      onValueChange={(value) =>
-                        setAppointmentForm({ ...appointmentForm, physicianId: Number.parseInt(value) })
-                      }
-                    >
-                      <SelectTrigger id="appointment-physician">
-                        <SelectValue placeholder="Selecciona un médico" />
-                      </SelectTrigger>
-                      <SelectContent>
+                      <Select
+                        value={appointmentForm.physicianId?.toString() || ""}
+                        onValueChange={(value) =>
+                          setAppointmentForm({ ...appointmentForm, physicianId: Number.parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger id="appointment-physician">
+                          <SelectValue placeholder="Selecciona un médico" />
+                        </SelectTrigger>
+                        <SelectContent>
                         {physicians.map((physician) => (
                           <SelectItem key={physician.id} value={physician.id.toString()}>
-                            {physician.adminUserId} - {physician.specialty}
+                            {`${physician.firstName} ${physician.secondName ?? ""} ${physician.firstLastName} ${physician.secondLastName ?? ""}`.trim()} - {physician.specialty}
                           </SelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
+                        </SelectContent>
+                      </Select>
                   </div>
                 </div>
               </div>
