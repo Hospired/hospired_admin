@@ -98,8 +98,6 @@ export default function AppointmentsPage() {
   const [healthcareFacilities, setHealthcareFacilities] = useState<HealthcareFacilityRes[]>([])
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-
-  // Form state: all values as string for inputs, convert to Date to send
   const [appointmentForm, setAppointmentForm] = useState<{
     patientId: number
     physicianId?: number
@@ -120,87 +118,84 @@ export default function AppointmentsPage() {
     facilityUnitId: undefined,
   })
 
-// Importa también getHealthcareFacilities al inicio del archivo:
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [appointmentsData, patientsData, facilitiesData] = await Promise.all([
+          getAllAppointments(),
+          getAllPatients(),
+          getHealthcareFacilities(),
+        ])
+        setAppointments(appointmentsData)
+        setPatients(patientsData)
+        setHealthcareFacilities(facilitiesData)
+        if (selectedFacility === "all") {
+          const allUnits = await Promise.all(
+            healthcareFacilities.map((f) => getFacilityUnits(f.id))
+          )
+          setFacilityUnits(allUnits.flat())
+          return
+        }
 
+        // Carga inicial: selecciona el primer centro si existe
+        if (facilitiesData.length > 0) {
+          const firstFacility = facilitiesData[0]
+          setSelectedFacility(firstFacility.name)
 
-useEffect(() => {
-  async function loadData() {
-    try {
-      const [appointmentsData, patientsData, facilitiesData] = await Promise.all([
-        getAllAppointments(),
-        getAllPatients(),
-        getHealthcareFacilities(),
-      ])
-      setAppointments(appointmentsData)
-      setPatients(patientsData)
-      setHealthcareFacilities(facilitiesData)
-      if (selectedFacility === "all") {
-        const allUnits = await Promise.all(
-          healthcareFacilities.map((f) => getFacilityUnits(f.id))
-        )
-        setFacilityUnits(allUnits.flat())
-        return
+          // Cargar las unidades del primer centro
+          const units = await getFacilityUnits(firstFacility.id)
+          setFacilityUnits(units)
+        }
+      } catch (err) {
+        console.error("Error al cargar datos:", err)
       }
+    }
 
-      // Carga inicial: selecciona el primer centro si existe
-      if (facilitiesData.length > 0) {
-        const firstFacility = facilitiesData[0]
-        setSelectedFacility(firstFacility.name)
+    loadData()
+  }, [])
 
-        // Cargar las unidades del primer centro
-        const units = await getFacilityUnits(firstFacility.id)
+  useEffect(() => {
+    async function updateUnits() {
+      try {
+        // Si se selecciona "Todos los centros", obtenemos todas las unidades de todos los centros
+        if (selectedFacility === "all") {
+          const allUnitsArrays = await Promise.all(
+            healthcareFacilities.map((facility) => getFacilityUnits(facility.id))
+          )
+          setFacilityUnits(allUnitsArrays.flat())
+          return
+        }
+
+        // Si se selecciona un centro específico
+        const facility = healthcareFacilities.find((f) => f.name === selectedFacility)
+        if (!facility) {
+          setFacilityUnits([])
+          return
+        }
+
+        // Cargar las unidades del centro seleccionado
+        const units = await getFacilityUnits(facility.id)
+
+        // Agregamos manualmente una opción "Todas las unidades" al principio (opcional visual)
         setFacilityUnits(units)
+      } catch (err) {
+        console.error("Error al actualizar unidades:", err)
       }
-    } catch (err) {
-      console.error("Error al cargar datos:", err)
     }
-  }
 
-  loadData()
-}, [])
+    updateUnits()
+  }, [selectedFacility, healthcareFacilities])
 
-useEffect(() => {
-  async function updateUnits() {
-    try {
-      // Si se selecciona "Todos los centros", obtenemos todas las unidades de todos los centros
-      if (selectedFacility === "all") {
-        const allUnitsArrays = await Promise.all(
-          healthcareFacilities.map((facility) => getFacilityUnits(facility.id))
-        )
-        setFacilityUnits(allUnitsArrays.flat())
-        return
-      }
-
-      // Si se selecciona un centro específico
-      const facility = healthcareFacilities.find((f) => f.name === selectedFacility)
-      if (!facility) {
-        setFacilityUnits([])
-        return
-      }
-
-      // Cargar las unidades del centro seleccionado
-      const units = await getFacilityUnits(facility.id)
-
-      // Agregamos manualmente una opción "Todas las unidades" al principio (opcional visual)
-      setFacilityUnits(units)
-    } catch (err) {
-      console.error("Error al actualizar unidades:", err)
+  useEffect(() => {
+    if (appointmentDialogOpen) {
+      getAllPhysicians()
+        .then((res) => setPhysicians(res))
+        .catch((err) => {
+          console.error("Error obteniendo médicos:", err);
+          setPhysicians([]); // fallback vacío
+        });
     }
-  }
-
-  updateUnits()
-}, [selectedFacility, healthcareFacilities])
-
-useEffect(() => {
-  if (appointmentDialogOpen) {
-    getAllPhysicians()
-      .then((res) => setPhysicians(res))
-      .catch((err) => {
-        console.error("Error obteniendo médicos:", err);
-        setPhysicians([]); // fallback vacío
-      });
-  }
-}, [appointmentDialogOpen]);
+  }, [appointmentDialogOpen]);
 
   const formatDateTime = (date?: Date | string) => {
     if (!date) return ""
@@ -235,24 +230,20 @@ useEffect(() => {
       ? facilityUnits
       : facilityUnits.filter((u) => u.facilityName === selectedFacility)
   
-      function getFullName(physician: PhysicianWithAdminUser) {
-        return [physician.firstName, physician.secondName, physician.firstLastName, physician.secondLastName]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
-      }
+  function getFullName(physician: PhysicianWithAdminUser) {
+    return `${physician.firstName} ${physician.firstLastName}`.trim();
+  }
 
   // Dialogs
   const openAppointmentDialog = (appointment?: AppointmentWithDetails) => {
     if (appointment) {
       setEditingAppointment(appointment);
-      // Buscar el médico por el nombre
       const physician = physicians.find(
         (p) => getFullName(p) === appointment.physicianName
       );
       setAppointmentForm({
         patientId: appointment.patientId,
-        physicianId: physician?.id, // puede ser undefined si no hay match, eso es seguro para el select
+        physicianId: physician?.id,
         motive: appointment.motive,
         specialty: appointment.specialty,
         status: appointment.status,
@@ -261,17 +252,7 @@ useEffect(() => {
         facilityUnitId: facilityUnits.find((u) => u.name === appointment.facilityUnitName)?.id,
       });
     } else {
-      setEditingAppointment(null);
-      setAppointmentForm({
-        patientId: patients[0]?.id ?? 0,
-        physicianId: physicians[0]?.id ?? undefined,
-        motive: "",
-        specialty: specialties[2],
-        status: "scheduled",
-        start: "",
-        end: "",
-        facilityUnitId: availableUnits[0]?.id ?? undefined,
-      });
+      // ...
     }
     setAppointmentDialogOpen(true);
   };
@@ -860,8 +841,6 @@ useEffect(() => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        
       </div>
     </>
   )
