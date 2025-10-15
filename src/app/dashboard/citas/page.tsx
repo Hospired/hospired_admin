@@ -180,7 +180,7 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
   }, [selectedFacility, healthcareFacilities])
 
   useEffect(() => {
-    if (appointmentDialogOpen) {
+    if (appointmentDialogOpen || createDialogOpen) {
       getAllPhysicians()
         .then((res) => setPhysicians(res))
         .catch((err) => {
@@ -188,7 +188,7 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
           setPhysicians([]); // fallback vacío
         });
     }
-  }, [appointmentDialogOpen]);
+  }, [appointmentDialogOpen, createDialogOpen]);
 
   const formatDateTime = (date?: Date | string) => {
     if (!date) return ""
@@ -285,28 +285,61 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
         await updateAppointment(editingAppointment.id, dto);
         setConfirmationType("success");
         setConfirmationMessage("La cita fue editada correctamente.");
+        setAppointmentDialogOpen(false); // Cierra modal de editar
       } else {
         await createAppointment(dto);
         setConfirmationType("success");
         setConfirmationMessage("La cita fue creada correctamente.");
+        setCreateDialogOpen(false); // Cierra modal de crear
       }
       const updatedAppointments = await getAllAppointments();
       setAppointments(updatedAppointments);
-      setAppointmentDialogOpen(false);
     } catch (error) {
       setConfirmationType("error");
-      setConfirmationMessage("No se pudo editar la cita. Intenta nuevamente.");
-      setAppointmentDialogOpen(false);
+      if (editingAppointment) {
+        setConfirmationMessage("No se pudo editar la cita. Intenta nuevamente.");
+        setAppointmentDialogOpen(false);
+      } else {
+        setConfirmationMessage("No se pudo crear la cita. Verifica los datos e intenta nuevamente.");
+        setCreateDialogOpen(false);
+      }
     }
     setConfirmationDialogOpen(true);
   };
 
-  const openEditFromDetails = () => {
-    if (selectedAppointment) {
-      setDetailsDialogOpen(false)
-      openAppointmentDialog(selectedAppointment)
-    }
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false);
+    setAppointmentForm({
+      patientId: 0,
+      physicianId: undefined,
+      motive: "",
+      specialty: "",
+      status: "scheduled",
+      start: "",
+      end: "",
+      facilityUnitId: undefined,
+    });
+  };
+
+  const handleCreateDialogOpenChange = (open: boolean) => {
+  if (!open) {
+    setCreateDialogOpen(false); // Cierra el modal
+    setAppointmentForm({
+      patientId: 0,
+      physicianId: undefined,
+      motive: "",
+      specialty: "",
+      status: "scheduled",
+      start: "",
+      end: "",
+      facilityUnitId: undefined,
+    }); // Reinicia el formulario
+  } else {
+    setCreateDialogOpen(true); // Abre el modal
   }
+};
+
+
 
   const total = appointments.length
   const scheduled = appointments.filter((a) => a.status === "scheduled").length
@@ -641,12 +674,11 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
               </div>
             )}
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
-                Cerrar
+              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Cancelar
               </Button>
-              <Button onClick={openEditFromDetails} className="gap-2">
-                <Edit className="h-4 w-4" />
-                Editar
+              <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
+                Crear Cita
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -840,7 +872,7 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
         </Dialog>
 
         {/* crear citas */}
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <Dialog open={createDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl">
@@ -857,10 +889,24 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="appointment-patient">Paciente *</Label>
-                      <Input
-                        value={selectedAppointment?.patientName || "Paciente desconocido"}
-                        disabled
-                      />
+                    <Select
+                        value={appointmentForm.patientId ? appointmentForm.patientId.toString() : ""}
+                        onValueChange={(value) =>
+                          setAppointmentForm({ ...appointmentForm, patientId: parseInt(value) })
+                        }
+                        required
+                      >
+                        <SelectTrigger id="appointment-patient">
+                          <SelectValue placeholder="Selecciona un paciente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {patients.map((patient) => (
+                            <SelectItem key={patient.id} value={patient.id.toString()}>
+                              {patient.fullName} {/* Muestra el nombre completo */}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="appointment-physician">Médico Asignado *</Label>
@@ -990,14 +1036,14 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
                 </div>
               </div>
             </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setAppointmentDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
-                {editingAppointment ? "Guardar Cambios" : "Crear Cita"}
-              </Button>
-            </DialogFooter>
+            <DialogFooter>
+                <Button variant="outline" onClick={handleCloseCreateDialog}>
+                  Cancelar
+                </Button>
+                <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
+                  Crear Cita
+                </Button>
+              </DialogFooter>
           </DialogContent>
         </Dialog>
 
