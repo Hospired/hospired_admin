@@ -110,7 +110,25 @@ export async function getPhysicianByAdminUserId(adminUserId: string) {
   };
 }
 
-export async function updatePhysician(id: number, data: {
+export async function updatePhysician(id: number, updates: Partial<CreatePhysicianReq>) {
+  const { error } = await supabase
+    .from("physicians")
+    .update({
+      specialty: updates.specialty,
+      license_id: updates.licenseId,
+      public_email: updates.public_email,
+      phone_number: updates.phone_number,
+      notes: updates.notes ?? null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error actualizando physician:", error.message);
+    throw error;
+  }
+}
+
+export async function updatePhysicianTable(id: number, data: {
   licenseId: string;
   specialty: string;
   public_email: string;

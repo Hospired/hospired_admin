@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getAllPhysicians, updatePhysician } from "@/backend-api/apiService"
+import { getAllPhysicians, updatePhysicianTable } from "@/backend-api/apiService"
 import { PhysicianWithAdminUser, medicalSpecialtyMap } from "@/backend-api/dtos"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -125,7 +125,7 @@ export default function PhysiciansPage() {
     if (!editForm) return
     setIsEditLoading(true)
     try {
-      await updatePhysician(editForm.id, {
+      await updatePhysicianTable(editForm.id, {
         licenseId: editForm.licenseId,
         specialty: editForm.specialty,
         public_email: editForm.public_email,
