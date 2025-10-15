@@ -19,7 +19,8 @@ import {
   FacilityUnitRes,
   appointmentStatusMap,
   AppointmentStatus,
-  HealthcareFacilityRes
+  HealthcareFacilityRes,
+  PatientWithUser
 } from "@/backend-api/dtos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -78,9 +79,10 @@ const specialties = [
   "Neurología",
 ]
 
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([])
-  const [patients, setPatients] = useState<PatientRes[]>([])
+  const [patients, setPatients] = useState<PatientWithUser[]>([])
   const [physicians, setPhysicians] = useState<PhysicianRes[]>([])
   const [facilityUnits, setFacilityUnits] = useState<FacilityUnitRes[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -93,6 +95,7 @@ export default function AppointmentsPage() {
   const [appointmentToDelete, setAppointmentToDelete] = useState<AppointmentWithDetails | null>(null)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithDetails | null>(null)
   const [healthcareFacilities, setHealthcareFacilities] = useState<HealthcareFacilityRes[]>([])
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
 
   // Form state: all values as string for inputs, convert to Date to send
@@ -321,7 +324,7 @@ useEffect(() => {
               Gestiona las citas médicas y consultas del sistema de salud.
             </p>
           </div>
-          <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => openAppointmentDialog()}>
+          <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Nueva Cita
           </Button>
@@ -522,18 +525,10 @@ useEffect(() => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="details-patient">Paciente</Label>
-                      <Select value={selectedAppointment.patientId?.toString()} disabled>
-                        <SelectTrigger id="details-patient">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {patients.map((patient) => (
-                            <SelectItem key={patient.id} value={patient.id.toString()}>
-                              {getPatientFullName(patient)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        value={selectedAppointment.patientName || "Paciente desconocido"}
+                        disabled
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="details-physician">Médico Asignado</Label>
@@ -693,7 +688,7 @@ useEffect(() => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Crear/editar cita */}
+        {/* Editar cita */}
         <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -714,23 +709,10 @@ useEffect(() => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="appointment-patient">Paciente *</Label>
-                    <Select
-                      value={appointmentForm.patientId?.toString() || ""}
-                      onValueChange={(value) =>
-                        setAppointmentForm({ ...appointmentForm, patientId: Number.parseInt(value) })
-                      }
-                    >
-                      <SelectTrigger id="appointment-patient">
-                        <SelectValue placeholder="Selecciona un paciente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {patients.map((patient) => (
-                          <SelectItem key={patient.id} value={patient.id.toString()}>
-                            {getPatientFullName(patient)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Input
+                        value={selectedAppointment?.patientName || "Paciente desconocido"}
+                        disabled
+                      />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="appointment-physician">Médico Asignado *</Label>
@@ -870,6 +852,8 @@ useEffect(() => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        
       </div>
     </>
   )

@@ -113,6 +113,23 @@ export type PatientRes = {
   createdAt: Date;
 };
 
+export type PatientWithUser = {
+  id: number;
+  appUserId?: string;
+  nationalId: string;
+  inss: number;
+  phone: string;
+  occupation?: string;
+  address: string;
+  municipalityId?: number;
+  municipalityName?: string;
+  department?: string;
+  medicalNotes?: string;
+  createdAt: Date;
+  fullName: string;
+  dateOfBirth?: Date;
+};
+
 export type Municipality = {
   id: number;
   name?: string;

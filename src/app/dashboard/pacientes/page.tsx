@@ -3,23 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { getAllPatients } from "@/backend-api/apiService"
-
-type PatientWithUser = {
-  id: number;
-  appUserId?: string;
-  nationalId: string;
-  inss: number;
-  phone: string;
-  occupation?: string;
-  address: string;
-  municipalityId?: number;
-  municipalityName?: string;
-  department?: string;
-  medicalNotes?: string;
-  createdAt: Date;
-  fullName: string;
-  dateOfBirth?: Date;
-};
+import { PatientWithUser } from "@/backend-api/dtos"
 
 import {
   Card,
