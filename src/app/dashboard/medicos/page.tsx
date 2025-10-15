@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getAllPhysicians } from "@/backend-api/apiService"
-import { PhysicianWithAdminUser } from "@/backend-api/dtos"
+import { getAllPhysicians, updatePhysician } from "@/backend-api/apiService"
+import { PhysicianWithAdminUser, medicalSpecialtyMap } from "@/backend-api/dtos"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import {
   Card,
@@ -53,6 +54,10 @@ export default function PhysiciansPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [deletingPhysician, setDeletingPhysician] = useState<PhysicianWithAdminUser | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState<PhysicianWithAdminUser | null>(null)
+  const [isEditLoading, setIsEditLoading] = useState(false)
+  const [editResult, setEditResult] = useState<null | "success" | "error">(null)
 
   useEffect(() => {
     const fetchPhysicians = async () => {
@@ -108,7 +113,32 @@ export default function PhysiciansPage() {
   }
 
   const handleEdit = (p: PhysicianWithAdminUser) => {
-    window.location.href = `/dashboard/medicos/editar/${p.id}`
+    setEditForm(p)
+    setIsEditOpen(true)
+  }
+
+  const handleEditChange = (field: keyof PhysicianWithAdminUser, value: any) => {
+    setEditForm(prev => prev ? { ...prev, [field]: value } : prev)
+  }
+
+  const handleEditSave = async () => {
+    if (!editForm) return
+    setIsEditLoading(true)
+    try {
+      await updatePhysician(editForm.id, {
+        licenseId: editForm.licenseId,
+        specialty: editForm.specialty,
+        public_email: editForm.public_email,
+        phone_number: editForm.phone_number,
+        notes: editForm.notes ?? ""
+      })
+      setPhysicians(prev => prev.map(p => p.id === editForm.id ? { ...p, ...editForm } : p))
+      setIsEditOpen(false)
+      setEditResult("success")
+    } catch (err) {
+      setEditResult("error")
+    }
+    setIsEditLoading(false)
   }
 
   return (
@@ -182,7 +212,7 @@ export default function PhysiciansPage() {
                   <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewDetails(p)}>
                     <TableCell className="font-medium">{p.id}</TableCell>
                     <TableCell>{`${p.firstName} ${p.secondName ?? ""} ${p.firstLastName} ${p.secondLastName ?? ""}`}</TableCell>
-                    <TableCell>{p.specialty}</TableCell>
+                    <TableCell>{medicalSpecialtyMap[p.specialty] || p.specialty}</TableCell>
                     <TableCell>{p.licenseId}</TableCell>
                     <TableCell>{p.public_email}</TableCell>
                     <TableCell>{p.phone_number}</TableCell>
@@ -285,6 +315,73 @@ export default function PhysiciansPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={confirmDelete}>Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de edición */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Médico</DialogTitle>
+            <DialogDescription>Modifica los datos y guarda los cambios.</DialogDescription>
+          </DialogHeader>
+          {editForm && (
+            <form className="space-y-3" onSubmit={e => {e.preventDefault(); handleEditSave();}}>
+              <label className="text-sm text-muted-foreground" htmlFor="licenseId">Licencia</label>
+              <Input id="licenseId" value={editForm.licenseId} onChange={e => handleEditChange("licenseId", e.target.value)} />
+              <label className="text-sm text-muted-foreground" htmlFor="specialty">Especialidad</label>
+              <Select
+                value={editForm?.specialty ?? ""}
+                onValueChange={value => handleEditChange("specialty", value)}
+              >
+                <SelectTrigger id="specialty">
+                  <SelectValue placeholder="Selecciona una especialidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(medicalSpecialtyMap).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <label className="text-sm text-muted-foreground" htmlFor="public_email">Email</label>
+              <Input id="public_email" value={editForm.public_email} onChange={e => handleEditChange("public_email", e.target.value)} />
+              <label className="text-sm text-muted-foreground" htmlFor="phone_number">Teléfono</label>
+              <Input id="phone_number" value={editForm.phone_number} onChange={e => handleEditChange("phone_number", e.target.value)} />
+              <label className="text-sm text-muted-foreground" htmlFor="notes">Notas</label>
+              <Input id="notes" value={editForm.notes || ""} onChange={e => handleEditChange("notes", e.target.value)} />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={isEditLoading}>
+                  {isEditLoading ? "Guardando..." : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmación de edición */}
+      <Dialog open={!!editResult} onOpenChange={() => setEditResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editResult === "success"
+                ? "Médico actualizado correctamente"
+                : "Error al actualizar médico"}
+            </DialogTitle>
+            <DialogDescription>
+              {editResult === "success"
+                ? "Los datos del médico se han guardado correctamente."
+                : "No se pudo actualizar el médico. Por favor, inténtalo de nuevo."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setEditResult(null)}>
+              Cerrar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

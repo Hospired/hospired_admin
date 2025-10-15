@@ -60,6 +60,21 @@ const data = {
         },
       ],*/
     },
+        {
+      title: "Medicos",
+      url: "/dashboard/medicos",
+      icon: Users,
+      /*items: [
+        {
+          title: "Lista de Pacientes",
+          url: "/dashboard/pacientes",
+        },
+        {
+          title: "Nuevo Paciente",
+          url: "/dashboard/pacientes/nuevo",
+        },
+      ],*/
+    },
     {
       title: "Citas",
       url: "/dashboard/citas",

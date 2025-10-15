@@ -216,13 +216,7 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
 
     return matchesSearch && matchesFacility && matchesUnit
   })
-
-  const availableFacilities = Array.from(new Set(facilityUnits.map((u) => u.facilityName ?? "")))
-  const availableUnits =
-    selectedFacility === "all"
-      ? facilityUnits
-      : facilityUnits.filter((u) => u.facilityName === selectedFacility)
-  
+    
   function getFullName(physician: PhysicianWithAdminUser) {
     return `${physician.firstName} ${physician.firstLastName}`.trim();
   }
