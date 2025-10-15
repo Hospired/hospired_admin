@@ -839,6 +839,168 @@ const [confirmationType, setConfirmationType] = useState<"success" | "error">("s
           </DialogContent>
         </Dialog>
 
+        {/* crear citas */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+              </DialogTitle>
+              <DialogDescription>
+                "Completa el formulario para agendar una nueva cita"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Paciente y Médico
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-patient">Paciente *</Label>
+                      <Input
+                        value={selectedAppointment?.patientName || "Paciente desconocido"}
+                        disabled
+                      />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-physician">Médico Asignado *</Label>
+                      <Select
+                        value={appointmentForm.physicianId?.toString() || ""}
+                        onValueChange={(value) =>
+                          setAppointmentForm({ ...appointmentForm, physicianId: Number.parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger id="appointment-physician">
+                          <SelectValue placeholder="Selecciona un médico" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {physicians.map((physician) => (
+                          <SelectItem key={physician.id} value={physician.id.toString()}>
+                            {`${physician.firstName} ${physician.secondName ?? ""} ${physician.firstLastName} ${physician.secondLastName ?? ""}`.trim()} - {physician.specialty}
+                          </SelectItem>
+                        ))}
+                        </SelectContent>
+                      </Select>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Detalles de la Consulta
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-motive">Motivo de la Cita *</Label>
+                    <Textarea
+                      id="appointment-motive"
+                      value={appointmentForm.motive}
+                      onChange={(e) => setAppointmentForm({ ...appointmentForm, motive: e.target.value })}
+                      placeholder="Describe el motivo de la consulta médica..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-specialty">Especialidad *</Label>
+                      <Select
+                        value={appointmentForm.specialty}
+                        onValueChange={(value) => setAppointmentForm({ ...appointmentForm, specialty: value })}
+                      >
+                        <SelectTrigger id="appointment-specialty">
+                          <SelectValue placeholder="Selecciona especialidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {specialtyOptions.map(([en, es]) => (
+                            <SelectItem key={en} value={en}>
+                              {es}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-status">Estado *</Label>
+                      <Select
+                        value={appointmentForm.status}
+                        onValueChange={(value) =>
+                          setAppointmentForm({ ...appointmentForm, status: value as AppointmentStatus })
+                        }
+                      >
+                        <SelectTrigger id="appointment-status">
+                          <SelectValue placeholder="Selecciona estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="scheduled">Programada</SelectItem>
+                          <SelectItem value="completed">Completada</SelectItem>
+                          <SelectItem value="canceled">Cancelada</SelectItem>
+                          <SelectItem value="no_show">No asistió</SelectItem>
+                          <SelectItem value="requested">Solicitada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <h3 className="mb-4 font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Fecha, Hora y Ubicación
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-start">Fecha y Hora de Inicio *</Label>
+                      <Input
+                        id="appointment-start"
+                        type="datetime-local"
+                        value={appointmentForm.start}
+                        onChange={(e) => setAppointmentForm({ ...appointmentForm, start: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-end">Fecha y Hora de Fin *</Label>
+                      <Input
+                        id="appointment-end"
+                        type="datetime-local"
+                        value={appointmentForm.end}
+                        onChange={(e) => setAppointmentForm({ ...appointmentForm, end: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-unit">Unidad del Centro de Salud *</Label>
+                    <Select
+                      value={appointmentForm.facilityUnitId?.toString() || ""}
+                      onValueChange={(value) =>
+                        setAppointmentForm({ ...appointmentForm, facilityUnitId: Number.parseInt(value) })
+                      }
+                    >
+                      <SelectTrigger id="appointment-unit">
+                        <SelectValue placeholder="Selecciona una unidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilityUnits.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id.toString()}>
+                            {unit.name} - {unit.facilityName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setAppointmentDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveAppointment} className="bg-primary hover:bg-primary/90">
+                {editingAppointment ? "Guardar Cambios" : "Crear Cita"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/*Modal de confirmación*/}
         <Dialog open={confirmationDialogOpen} onOpenChange={setConfirmationDialogOpen}>
           <DialogContent className="max-w-sm">
