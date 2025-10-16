@@ -1,27 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, User } from "lucide-react"
 import Link from "next/link"
+import { getAllAppointments } from "@/backend-api/apiService"
 
-// Mock calendar data
-const calendarEvents = [
-  { id: 1, date: 20, time: "09:00", patient: "María González", doctor: "Dr. Ramírez", type: "Consulta" },
-  { id: 2, date: 20, time: "10:30", patient: "Carlos Mendoza", doctor: "Dra. Rodríguez", type: "Control" },
-  { id: 3, date: 20, time: "14:00", patient: "Ana Rodríguez", doctor: "Dr. García", type: "Prenatal" },
-  { id: 4, date: 21, time: "09:30", patient: "José Martínez", doctor: "Dr. López", type: "Traumatología" },
-  { id: 5, date: 22, time: "11:00", patient: "Laura Herrera", doctor: "Dra. Morales", type: "Neurología" },
-]
-
+// Cambia los datos estáticos por datos dinámicos
 export default function CalendarioPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 0, 20)) // January 20, 2024
-  const [selectedDate, setSelectedDate] = useState(20)
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(currentDate.getDate())
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
   const monthNames = [
     "Enero",
     "Febrero",
@@ -39,8 +32,46 @@ export default function CalendarioPage() {
 
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
 
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
+
+  useEffect(() => {
+    async function fetchEvents() {
+      setLoading(true)
+      try {
+        const appointments = await getAllAppointments()
+        const events = appointments.map(a => {
+          const startDate = a.start ? new Date(a.start) : null
+          return {
+            id: a.id,
+            date: startDate ? startDate.getDate() : null,
+            month: startDate ? startDate.getMonth() : null,
+            year: startDate ? startDate.getFullYear() : null,
+            time: startDate ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+            patient: a.patientName,
+            doctor: a.physicianName ?? "Sin doctor",
+            type: a.specialty,
+            startDate,
+          }
+        })
+        setCalendarEvents(events)
+      } catch (e) {
+        setCalendarEvents([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchEvents()
+  }, [currentDate])
+
+  // Obtiene las citas para un día específico del mes actual
   const getEventsForDate = (date: number) => {
-    return calendarEvents.filter((event) => event.date === date)
+    return calendarEvents.filter(
+      (event) =>
+        event.date === date &&
+        event.month === currentDate.getMonth() &&
+        event.year === currentDate.getFullYear()
+    )
   }
 
   const selectedDateEvents = getEventsForDate(selectedDate)
@@ -53,7 +84,13 @@ export default function CalendarioPage() {
       newDate.setMonth(newDate.getMonth() + 1)
     }
     setCurrentDate(newDate)
+    setSelectedDate(1) // Al cambiar de mes, selecciona el primer día
   }
+
+  // Día actual del mes y año para resaltar en el calendario
+  const today = new Date()
+  const isSameMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()
+  const todayDate = isSameMonth ? today.getDate() : null
 
   return (
     <div className="space-y-6">
@@ -93,64 +130,70 @@ export default function CalendarioPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {dayNames.map((day) => (
-                <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                  {day}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-2">
-              {/* Empty cells for days before the first day of the month */}
-              {Array.from({ length: firstDayOfMonth }, (_, i) => (
-                <div key={`empty-${i}`} className="p-2 h-20"></div>
-              ))}
-
-              {/* Days of the month */}
-              {Array.from({ length: daysInMonth }, (_, i) => {
-                const date = i + 1
-                const events = getEventsForDate(date)
-                const isSelected = date === selectedDate
-                const isToday = date === 20 // Mock today as 20th
-
-                return (
-                  <div
-                    key={date}
-                    className={`p-2 h-20 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : isToday
-                          ? "bg-primary/10 border-primary"
-                          : "hover:bg-muted"
-                    }`}
-                    onClick={() => setSelectedDate(date)}
-                  >
-                    <div className="font-medium text-sm">{date}</div>
-                    <div className="space-y-1 mt-1">
-                      {events.slice(0, 2).map((event) => (
-                        <div
-                          key={event.id}
-                          className={`text-xs p-1 rounded truncate ${
-                            isSelected
-                              ? "bg-primary-foreground/20 text-primary-foreground"
-                              : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {event.time}
-                        </div>
-                      ))}
-                      {events.length > 2 && (
-                        <div
-                          className={`text-xs ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground"}`}
-                        >
-                          +{events.length - 2} más
-                        </div>
-                      )}
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Cargando citas...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 gap-2 mb-4">
+                  {dayNames.map((day) => (
+                    <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+                      {day}
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {/* Empty cells for days before the first day of the month */}
+                  {Array.from({ length: firstDayOfMonth }, (_, i) => (
+                    <div key={`empty-${i}`} className="p-2 h-20"></div>
+                  ))}
+
+                  {/* Days of the month */}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
+                    const date = i + 1
+                    const events = getEventsForDate(date)
+                    const isSelected = date === selectedDate
+                    const isToday = date === todayDate
+
+                    return (
+                      <div
+                        key={date}
+                        className={`p-2 h-20 border rounded-lg cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : isToday
+                              ? "bg-primary/10 border-primary"
+                              : "hover:bg-muted"
+                        }`}
+                        onClick={() => setSelectedDate(date)}
+                      >
+                        <div className="font-medium text-sm">{date}</div>
+                        <div className="space-y-1 mt-1">
+                          {events.slice(0, 2).map((event) => (
+                            <div
+                              key={event.id}
+                              className={`text-xs p-1 rounded truncate ${
+                                isSelected
+                                  ? "bg-primary-foreground/20 text-primary-foreground"
+                                  : "bg-primary/10 text-primary"
+                              }`}
+                            >
+                              {event.time}
+                            </div>
+                          ))}
+                          {events.length > 2 && (
+                            <div
+                              className={`text-xs ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                            >
+                              +{events.length - 2} más
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -166,7 +209,12 @@ export default function CalendarioPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {selectedDateEvents.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">Cargando citas...</p>
+              </div>
+            ) : selectedDateEvents.length > 0 ? (
               selectedDateEvents.map((event) => (
                 <div key={event.id} className="flex items-start space-x-3 p-3 rounded-lg border">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">

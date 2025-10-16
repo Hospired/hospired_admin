@@ -49,31 +49,11 @@ const data = {
       title: "Pacientes",
       url: "/dashboard/pacientes",
       icon: Users,
-      /*items: [
-        {
-          title: "Lista de Pacientes",
-          url: "/dashboard/pacientes",
-        },
-        {
-          title: "Nuevo Paciente",
-          url: "/dashboard/pacientes/nuevo",
-        },
-      ],*/
     },
-        {
+    {
       title: "Medicos",
       url: "/dashboard/medicos",
       icon: Users,
-      /*items: [
-        {
-          title: "Lista de Pacientes",
-          url: "/dashboard/pacientes",
-        },
-        {
-          title: "Nuevo Paciente",
-          url: "/dashboard/pacientes/nuevo",
-        },
-      ],*/
     },
     {
       title: "Citas",
@@ -94,7 +74,7 @@ const data = {
         },
       ],*/
     },
-    {
+    /*{
       title: "Consultas",
       url: "/dashboard/consultas",
       icon: Stethoscope,
@@ -108,8 +88,13 @@ const data = {
           url: "/dashboard/consultas/historial",
         },
       ],
-    },
+    },*/
     {
+      title: "Calendario",
+      url: "/dashboard/citas/calendario",
+      icon: Users,
+    },
+    /*{
       title: "Admisiones",
       url: "/dashboard/admisiones",
       icon: Activity,
@@ -138,8 +123,8 @@ const data = {
           url: "/dashboard/examenes/nuevo",
         },
       ],
-    },
-        {
+    },*/
+    {
       title: "Centros de salud",
       url: "/dashboard/centros",
       icon: Home,
@@ -163,18 +148,23 @@ const data = {
   ],
   projects: [
     {
-      name: "Consultorio 1",
-      url: "#",
+      name: "Consultas Activas",
+      url: "/dashboard/consultas",
+      icon: Stethoscope,
+    },
+    {
+      name: "Historial de consultas",
+      url: "#/dashboard/consultas/historial",
       icon: ClipboardList,
     },
     {
-      name: "Consultorio 2",
-      url: "#",
-      icon: ClipboardList,
+      name: "Programación",
+      url: "/dashboard/citas/programacion",
+      icon: FilePlus,
     },
     {
-      name: "Emergencias",
-      url: "#",
+      name: "Interconsultas",
+      url: "/dashboard/citas/interconsultas",
       icon: FilePlus,
     },
   ],
@@ -191,7 +181,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {/* Contenido principal */}
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/*<NavProjects projects={data.projects} />*/}
+        <NavProjects projects={data.projects} />
       </SidebarContent>
 
       {/* Usuario autenticado */}
