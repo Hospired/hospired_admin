@@ -6,14 +6,11 @@ import {
   Users,
   Calendar,
   Stethoscope,
-  Activity,
-  FlaskConical,
   UserCog,
   BarChart2,
   Settings,
   FilePlus,
   ClipboardList,
-  FileText,
   Briefcase,
 } from "lucide-react"
 
@@ -28,6 +25,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useUser } from "@/hooks/use-user"
 
 
 const data = {
@@ -171,6 +169,57 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { userData, isLoading } = useUser()
+  
+  // Filter navigation items based on user role
+  const filteredNavMain = React.useMemo(() => {
+    if (isLoading || !userData) return []
+    
+    // If user is an admin, show all navigation items
+    if (userData.isSuperUser) {
+      return data.navMain
+    }
+    
+    // If user is a doctor (but not admin), show only doctor-specific tabs
+    if (userData.isPhysician) {
+      return data.navMain.filter(item => {
+        const doctorAllowedPages = [
+          "/dashboard",
+          "/dashboard/pacientes", 
+          "/dashboard/citas",
+          "/dashboard/citas/calendario",
+        ]
+        return doctorAllowedPages.includes(item.url)
+      })
+    }
+    
+    // Default: show minimal navigation
+    return data.navMain.filter(item => item.url === "/dashboard")
+  }, [userData, isLoading])
+
+  const filteredProjects = React.useMemo(() => {
+    if (isLoading || !userData) return []
+    
+    // If user is an admin, show all projects
+    if (userData.isSuperUser) {
+      return data.projects
+    }
+    
+    // If user is a doctor, show doctor-specific projects
+    if (userData.isPhysician) {
+      return data.projects.filter(project => {
+        const doctorAllowedProjects = [
+          "/dashboard/consultas",
+          "/dashboard/citas/programacion",
+        ]
+        return doctorAllowedProjects.includes(project.url)
+      })
+    }
+    
+    // Default: no projects
+    return []
+  }, [userData, isLoading])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       {/* Encabezado del sidebar */}
@@ -180,8 +229,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {/* Contenido principal */}
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={filteredNavMain} />
+        <NavProjects projects={filteredProjects} />
       </SidebarContent>
 
       {/* Usuario autenticado */}

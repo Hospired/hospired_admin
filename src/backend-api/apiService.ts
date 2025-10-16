@@ -87,6 +87,42 @@ export async function getAdminUser(id: string) {
   return result;
 }
 
+export async function getAllAdminUsers(): Promise<AdminUserRes[]> {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Error al obtener admin users: ${error.message}`);
+
+  return (data ?? []).map((user) => ({
+    id: user.id,
+    firstName: user.first_name,
+    secondName: user.second_name ?? undefined,
+    firstLastName: user.first_last_name,
+    secondLastName: user.second_last_name ?? undefined,
+    isPhysician: user.is_physician,
+    isSuperUser: user.is_super_user,
+    avatar: user.avatar ?? undefined,
+    dateOfBirth: user.date_of_birth ? new Date(user.date_of_birth) : undefined,
+    createdAt: new Date(user.created_at),
+  }));
+}
+
+export async function updateAdminUserRole(id: string, updates: { isSuperUser?: boolean; isPhysician?: boolean }) {
+  const { error } = await supabase
+    .from("admin_users")
+    .update({
+      is_super_user: updates.isSuperUser,
+      is_physician: updates.isPhysician,
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`Error al actualizar rol de admin user: ${error.message}`);
+  }
+}
+
 export async function getPhysicianByAdminUserId(adminUserId: string) {
   const { data, error } = await supabase
     .from("physicians")
