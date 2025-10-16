@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Settings, MapPin, Users, Stethoscope, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { Search, Plus, Settings, MapPin, Users, Stethoscope, MoreHorizontal, Edit, Trash2, Shield, UserCog } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getAllAdminUsers, updateAdminUserRole } from "@/backend-api/apiService"
+import { AdminUserRes } from "@/backend-api/dtos"
 
 const servicios = [
     {
@@ -77,38 +79,40 @@ const consultorios = [
     },
     ]
 
-    const usuarios = [
-    {
-        id: 1,
-        nombre: "Dr. Carlos Mendoza",
-        email: "carlos.mendoza@hospital.com",
-        rol: "Médico",
-        departamento: "Cardiología",
-        activo: true,
-        ultimoAcceso: "2024-01-15 14:30",
-    },
-    {
-        id: 2,
-        nombre: "Ana García",
-        email: "ana.garcia@hospital.com",
-        rol: "Administrador",
-        departamento: "Administración",
-        activo: true,
-        ultimoAcceso: "2024-01-15 16:45",
-    },
-    {
-        id: 3,
-        nombre: "María López",
-        email: "maria.lopez@hospital.com",
-        rol: "Enfermera",
-        departamento: "UCI",
-        activo: false,
-        ultimoAcceso: "2024-01-10 09:15",
-    },
-    ]
-
     export default function ConfiguracionPage() {
     const [searchTerm, setSearchTerm] = useState("")
+    const [adminUsers, setAdminUsers] = useState<AdminUserRes[]>([])
+    const [loading, setLoading] = useState(true)
+    const [updating, setUpdating] = useState<string | null>(null)
+
+    useEffect(() => {
+        loadAdminUsers()
+    }, [])
+
+    const loadAdminUsers = async () => {
+        try {
+            setLoading(true)
+            const users = await getAllAdminUsers()
+            setAdminUsers(users)
+        } catch (err) {
+            console.error("Error loading admin users:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleRoleUpdate = async (userId: string, isSuperUser: boolean, isPhysician: boolean) => {
+        try {
+            setUpdating(userId)
+            await updateAdminUserRole(userId, { isSuperUser, isPhysician })
+            await loadAdminUsers()
+        } catch (err) {
+            console.error("Error updating user role:", err)
+            alert("Error al actualizar el rol del usuario")
+        } finally {
+            setUpdating(null)
+        }
+    }
 
     const getStatusColor = (estado: string) => {
         switch (estado) {
@@ -315,65 +319,106 @@ const consultorios = [
                     className="pl-10"
                 />
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo Usuario
-                </Button>
             </div>
 
-            <div className="grid gap-4">
-                {usuarios.map((usuario) => (
-                <Card key={usuario.id} className="border-border/50">
-                    <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                        <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg">
-                            <Users className="h-6 w-6 text-blue-500" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="font-semibold text-foreground">{usuario.nombre}</h3>
-                            <p className="text-sm text-muted-foreground">{usuario.email}</p>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span>Departamento: {usuario.departamento}</span>
-                            <span>Último acceso: {usuario.ultimoAcceso}</span>
+            {loading ? (
+                <Card className="border-border/50">
+                <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">Cargando usuarios...</p>
+                </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-4">
+                {adminUsers
+                    .filter((user) => {
+                    if (!searchTerm) return true
+                    const fullName = `${user.firstName} ${user.secondName || ""} ${user.firstLastName} ${user.secondLastName || ""}`.toLowerCase()
+                    return fullName.includes(searchTerm.toLowerCase())
+                    })
+                    .map((usuario) => (
+                    <Card key={usuario.id} className="border-border/50">
+                        <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg">
+                                {usuario.isSuperUser ? (
+                                <Shield className="h-6 w-6 text-blue-500" />
+                                ) : usuario.isPhysician ? (
+                                <Stethoscope className="h-6 w-6 text-green-500" />
+                                ) : (
+                                <UserCog className="h-6 w-6 text-gray-500" />
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="font-semibold text-foreground">
+                                {usuario.firstName} {usuario.secondName || ""} {usuario.firstLastName} {usuario.secondLastName || ""}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">ID: {usuario.id.slice(0, 8)}...</p>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                <span>
+                                    Creado: {usuario.createdAt.toLocaleDateString("es-ES")}
+                                </span>
+                                </div>
+                            </div>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                            <div className="text-right space-y-2">
+                                <div className="flex items-center gap-2">
+                                <Badge
+                                    className={
+                                    usuario.isSuperUser
+                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                        : usuario.isPhysician
+                                        ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                        : "bg-gray-500/10 text-gray-500 border-gray-500/20"
+                                    }
+                                >
+                                    {usuario.isSuperUser ? "Administrador" : usuario.isPhysician ? "Médico" : "Usuario"}
+                                </Badge>
+                                </div>
+                                <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                    <Label className="text-xs text-muted-foreground">Admin:</Label>
+                                    <Switch
+                                    checked={usuario.isSuperUser}
+                                    disabled={updating === usuario.id}
+                                    onCheckedChange={(checked) =>
+                                        handleRoleUpdate(usuario.id, checked, usuario.isPhysician)
+                                    }
+                                    />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Label className="text-xs text-muted-foreground">Médico:</Label>
+                                    <Switch
+                                    checked={usuario.isPhysician}
+                                    disabled={updating === usuario.id}
+                                    onCheckedChange={(checked) =>
+                                        handleRoleUpdate(usuario.id, usuario.isSuperUser, checked)
+                                    }
+                                    />
+                                </div>
+                                </div>
+                            </div>
                             </div>
                         </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                        <div className="text-right space-y-1">
-                            <Badge
-                            className={
-                                usuario.activo
-                                ? "bg-green-500/10 text-green-500 border-green-500/20"
-                                : "bg-red-500/10 text-red-500 border-red-500/20"
-                            }
-                            >
-                            {usuario.activo ? "Activo" : "Inactivo"}
-                            </Badge>
-                            <Badge variant="outline">{usuario.rol}</Badge>
-                        </div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Ver perfil</DropdownMenuItem>
-                            <DropdownMenuItem>Editar usuario</DropdownMenuItem>
-                            <DropdownMenuItem>Cambiar permisos</DropdownMenuItem>
-                            <DropdownMenuItem>Resetear contraseña</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                                {usuario.activo ? "Desactivar" : "Activar"}
-                            </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
+                    ))}
+                {adminUsers.filter((user) => {
+                    if (!searchTerm) return true
+                    const fullName = `${user.firstName} ${user.secondName || ""} ${user.firstLastName} ${user.secondLastName || ""}`.toLowerCase()
+                    return fullName.includes(searchTerm.toLowerCase())
+                }).length === 0 && (
+                    <Card className="border-border/50">
+                    <CardContent className="p-6">
+                        <p className="text-center text-muted-foreground">
+                        No se encontraron usuarios
+                        </p>
                     </CardContent>
-                </Card>
-                ))}
-            </div>
+                    </Card>
+                )}
+                </div>
+            )}
 
             <Card className="border-border/50 mt-6">
                 <CardHeader>
