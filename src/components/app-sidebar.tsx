@@ -6,14 +6,11 @@ import {
   Users,
   Calendar,
   Stethoscope,
-  Activity,
-  FlaskConical,
   UserCog,
   BarChart2,
   Settings,
   FilePlus,
   ClipboardList,
-  FileText,
   Briefcase,
 } from "lucide-react"
 
