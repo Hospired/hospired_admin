@@ -211,6 +211,14 @@ export async function getAllPhysicians(): Promise<PhysicianWithAdminUser[]> {
   }));
 }
 
+export async function deletePhysician(id: number | string) {
+  const { error } = await supabase
+    .from("physicians")
+    .delete()
+    .eq("id", id)
+  if (error) throw new Error(`Error al eliminar médico: ${error.message}`)
+}
+
 //User
 
 export async function getAuthUser() {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getAllPhysicians, updatePhysicianTable } from "@/backend-api/apiService"
+import { getAllPhysicians, updatePhysicianTable, deletePhysician } from "@/backend-api/apiService"
 import { PhysicianWithAdminUser, medicalSpecialtyMap } from "@/backend-api/dtos"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -58,6 +58,7 @@ export default function PhysiciansPage() {
   const [editForm, setEditForm] = useState<PhysicianWithAdminUser | null>(null)
   const [isEditLoading, setIsEditLoading] = useState(false)
   const [editResult, setEditResult] = useState<null | "success" | "error">(null)
+  const [deleteResult, setDeleteResult] = useState<null | "success" | "error">(null)
 
   useEffect(() => {
     const fetchPhysicians = async () => {
@@ -107,9 +108,17 @@ export default function PhysiciansPage() {
     setIsDeleteOpen(true)
   }
 
-  const confirmDelete = () => {
-    console.log("Deleting:", deletingPhysician?.id)
+  const confirmDelete = async () => {
+    if (!deletingPhysician) return
+    try {
+      await deletePhysician(deletingPhysician.id)
+      setPhysicians(prev => prev.filter(p => p.id !== deletingPhysician.id))
+      setDeleteResult("success")
+    } catch (err) {
+      setDeleteResult("error")
+    }
     setIsDeleteOpen(false)
+    setDeletingPhysician(null)
   }
 
   const handleEdit = (p: PhysicianWithAdminUser) => {
@@ -300,24 +309,46 @@ export default function PhysiciansPage() {
       </Sheet>
 
       {/* Dialog eliminar */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Eliminar médico</DialogTitle>
-            <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
-          </DialogHeader>
-          {deletingPhysician && (
-            <div className="py-4">
-              <p><strong>{`${deletingPhysician.firstName} ${deletingPhysician.secondName ?? ""} ${deletingPhysician.firstLastName} ${deletingPhysician.secondLastName ?? ""}`}</strong></p>
-              <p className="text-sm text-muted-foreground">{deletingPhysician.licenseId}</p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Eliminar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+<Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Eliminar médico</DialogTitle>
+      <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
+    </DialogHeader>
+    {deletingPhysician && (
+      <div className="py-4">
+        <p><strong>{`${deletingPhysician.firstName} ${deletingPhysician.secondName ?? ""} ${deletingPhysician.firstLastName} ${deletingPhysician.secondLastName ?? ""}`}</strong></p>
+        <p className="text-sm text-muted-foreground">{deletingPhysician.licenseId}</p>
+      </div>
+    )}
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancelar</Button>
+      <Button variant="destructive" onClick={confirmDelete}>Eliminar</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+<Dialog open={!!deleteResult} onOpenChange={() => setDeleteResult(null)}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>
+        {deleteResult === "success"
+          ? "Médico eliminado correctamente"
+          : "Error al eliminar médico"}
+      </DialogTitle>
+      <DialogDescription>
+        {deleteResult === "success"
+          ? "El médico fue eliminado correctamente."
+          : "No se pudo eliminar el médico. Por favor, inténtalo de nuevo."}
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter>
+      <Button onClick={() => setDeleteResult(null)}>
+        Cerrar
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       {/* Modal de edición */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
