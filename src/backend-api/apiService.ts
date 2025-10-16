@@ -323,6 +323,21 @@ export async function getAppUser(id: string): Promise<AppUserRes | null> {
   };
 }
 
+export async function getTotalUsersCount() {
+  const { count: adminCount, error: adminError } = await supabase
+    .from("admin_users")
+    .select("id", { count: "exact", head: true });
+
+  if (adminError) throw new Error(`Error obteniendo admin_users: ${adminError.message}`);
+
+  const { count: appCount, error: appError } = await supabase
+    .from("app_users")
+    .select("id", { count: "exact", head: true });
+
+  if (appError) throw new Error(`Error obteniendo app_users: ${appError.message}`);
+  return (adminCount ?? 0) + (appCount ?? 0);
+}
+
 // --- PATIENTS ---
 
 export async function createPatient(req: CreatePatientReq) {
