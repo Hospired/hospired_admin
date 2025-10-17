@@ -437,7 +437,7 @@ export default function HealthcareFacilitiesAndUnitsPage() {
                   <option value="">Seleccione municipio</option>
                     {municipalities.map((m) => (
                       <option key={m.id} value={m.id}>
-                      {m.name} ({m.department})
+                        {m.name} ({m.departmentName})
                       </option>
                     ))}
                   </select>
