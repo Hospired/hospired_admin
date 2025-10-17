@@ -130,7 +130,7 @@ export type PatientWithUser = {
   address: string;
   municipalityId?: number;
   municipalityName?: string;
-  department?: string;
+  departmentName?: string; // <-- CAMBIA esto, antes era "department"
   medicalNotes?: string;
   createdAt: Date;
   fullName: string;
@@ -140,10 +140,34 @@ export type PatientWithUser = {
 export type Municipality = {
   id: number;
   name?: string;
-  department: string;
+  departmentId: number;
+  departmentName?: string; // deberás poblar este campo haciendo join con departments
   createdAt?: Date;
 };
 
+export type Department = {
+  id: number;
+  name: string;
+  createdAt?: Date;
+};
+
+export type AppAccountRequest = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  nationalId: string;
+  municipalityId?: number;
+  approved: boolean;
+  createdAt: Date;
+};
+
+export type MunicipalityWithDepartment = {
+  id: number;
+  name: string;
+  departmentId: number;
+  departmentName: string;
+}
 // HEALTHCARE FACILITIES
 export type HealthcareFacilityRes = {
   id: number;

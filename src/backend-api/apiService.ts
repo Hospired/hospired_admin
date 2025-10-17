@@ -15,8 +15,18 @@ import {
   CreateAppointmentReq,
   AppointmentRes,
   AppointmentWithDetails,
-  PhysicianWithAdminUser
+  PhysicianWithAdminUser,
+  MunicipalityWithDepartment
 } from "./dtos";
+
+export async function getAppAccountRequests() {
+  const { data, error } = await supabase
+    .from("app_account_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Error al obtener solicitudes de cuenta");
+  return data;
+}
 
 export async function createAdminUser(req: CreateAdminUserReq) {
   const { error } = await supabase
@@ -412,7 +422,10 @@ export async function getAllPatients() {
       municipalities (
         id,
         name,
-        department
+        department_id,
+        departments (
+          name
+        )
       )
     `)
     .order("created_at", { ascending: false });
@@ -429,12 +442,10 @@ export async function getAllPatients() {
     address: p.neighborhood ?? "",
     municipalityId: p.municipality_id ?? 0,
     municipalityName: p.municipalities?.name ?? "",
-    department: p.municipalities?.department ?? "",
+    departmentName: p.municipalities?.departments?.name ?? "",
     medicalNotes: p.medical_notes ?? "",
     createdAt: new Date(p.created_at),
-    fullName: `${p.app_users?.first_name ?? ""} ${p.app_users?.second_name ?? ""} ${
-      p.app_users?.first_last_name ?? ""
-    } ${p.app_users?.second_last_name ?? ""}`.trim(),
+    fullName: `${p.app_users?.first_name ?? ""} ${p.app_users?.second_name ?? ""} ${p.app_users?.first_last_name ?? ""} ${p.app_users?.second_last_name ?? ""}`.trim(),
     dateOfBirth: p.app_users?.date_of_birth ? new Date(p.app_users.date_of_birth) : undefined,
   }));
 }
@@ -471,14 +482,26 @@ export async function updatePatient(id: number, data: {
   if (error) throw new Error(error.message);
 }
 
-export async function getMunicipalities() {
+export async function getMunicipalities(): Promise<MunicipalityWithDepartment[]> {
   const { data, error } = await supabase
     .from("municipalities")
-    .select("*")
+    .select(`
+      id,
+      name,
+      department_id,
+      departments (
+        name
+      )
+    `)
     .order("name", { ascending: true });
 
   if (error) throw new Error(`Error al obtener municipios: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    name: m.name,
+    departmentId: m.department_id,
+    departmentName: m.departments?.name ?? "",
+  }));
 }
 
 //Centros
@@ -533,7 +556,10 @@ export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]
       created_at,
       municipalities (
         name,
-        department
+        department_id,
+        departments (
+          name
+        )
       ),
       facility_units (
         id
@@ -556,11 +582,10 @@ export async function getHealthcareFacilities(): Promise<HealthcareFacilityRes[]
     notes: f.notes ?? undefined,
     createdAt: new Date(f.created_at),
     municipalityName: f.municipalities?.name ?? "",
-    department: f.municipalities?.department ?? "",
-    unitsCount: f.facility_units ? f.facility_units.length : 0 // <-- NUEVO
+    department: f.municipalities?.departments?.name ?? "",
+    unitsCount: f.facility_units ? f.facility_units.length : 0,
   }));
 }
-
 //Unidades
 
 export async function createFacilityUnit(req: CreateFacilityUnitReq) {

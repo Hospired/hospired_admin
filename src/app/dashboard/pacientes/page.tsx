@@ -52,6 +52,12 @@ type SortConfig = {
   direction: "asc" | "desc"
 }
 
+type MunicipalityWithDepartment = {
+  id: number,
+  name: string,
+  departmentName: string
+}
+
 export default function PacientesPage() {
   const [patients, setPatients] = useState<PatientWithUser[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -63,7 +69,7 @@ export default function PacientesPage() {
   const [deleteResult, setDeleteResult] = useState<null | "success" | "error">(null)
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [appointments, setAppointments] = useState<any[]>([])
-  const [municipalities, setMunicipalities] = useState<{ id: number, name: string, department: string }[]>([])
+  const [municipalities, setMunicipalities] = useState<MunicipalityWithDepartment[]>([])
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editForm, setEditForm] = useState<PatientWithUser | null>(null)
   const [isEditLoading, setIsEditLoading] = useState(false)
@@ -81,18 +87,17 @@ export default function PacientesPage() {
     fetchPatients()
   }, [])
 
-useEffect(() => {
-  const loadMunicipalities = async () => {
-    try {
-      const data = await getMunicipalities();
-      console.log("Municipios:", data); // <-- revisa aquí
-      setMunicipalities(data);
-    } catch (error) {
-      console.error("Error al cargar municipios:", error);
-    }
-  };
-  loadMunicipalities();
-}, []);
+  useEffect(() => {
+    const loadMunicipalities = async () => {
+      try {
+        const data = await getMunicipalities();
+        setMunicipalities(data);
+      } catch (error) {
+        console.error("Error al cargar municipios:", error);
+      }
+    };
+    loadMunicipalities();
+  }, []);
 
   const calculateAge = (date?: Date) => {
     if (!date) return "—"
@@ -114,7 +119,7 @@ useEffect(() => {
       (p.occupation ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.address ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.municipalityName ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.department ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+      (p.departmentName ?? "").toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (!sortConfig.key) return 0
@@ -166,6 +171,15 @@ useEffect(() => {
 
   const handleEditChange = (field: keyof PatientWithUser, value: any) => {
     setEditForm(prev => prev ? { ...prev, [field]: value } : prev)
+    // Si cambia el municipio, también actualiza su nombre y departamento para mostrar en UI
+    if(field === "municipalityId") {
+      const m = municipalities.find(muni => muni.id === value)
+      setEditForm(prev => prev ? {
+        ...prev,
+        municipalityName: m?.name ?? "",
+        departmentName: m?.departmentName ?? ""
+      } : prev)
+    }
   }
 
   const handleEditSave = async () => {
@@ -189,14 +203,14 @@ useEffect(() => {
               ...p,
               ...editForm,
               municipalityName: m?.name ?? "",
-              department: m?.department ?? ""
+              departmentName: m?.departmentName ?? ""
             }
           : p
       ))
       setIsEditOpen(false)
-      setEditResult("success") // <-- Para el modal de confirmación
+      setEditResult("success")
     } catch (err) {
-      setEditResult("error") // <-- Para el modal de error
+      setEditResult("error")
     }
     setIsEditLoading(false)
   }
@@ -269,7 +283,7 @@ useEffect(() => {
                     <TableCell>{p.phone || "—"}</TableCell>
                     <TableCell>{p.occupation || "—"}</TableCell>
                     <TableCell>{p.municipalityName || "—"}</TableCell>
-                    <TableCell>{p.department || "—"}</TableCell>
+                    <TableCell>{p.departmentName || "—"}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -399,7 +413,7 @@ useEffect(() => {
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">Departamento</label>
-                    <Input value={selectedPatient.department || "—"} readOnly />
+                    <Input value={selectedPatient.departmentName || "—"} readOnly />
                   </div>
                 </CardContent>
               </Card>
@@ -503,7 +517,7 @@ useEffect(() => {
                 <SelectContent>
                   {municipalities.map(m => (
                     <SelectItem key={m.id} value={m.id.toString()}>
-                      {m.name} ({m.department})
+                      {m.name} ({m.departmentName})
                     </SelectItem>
                   ))}
                 </SelectContent>
