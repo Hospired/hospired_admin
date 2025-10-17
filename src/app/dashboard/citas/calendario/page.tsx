@@ -102,10 +102,10 @@ export default function CalendarioPage() {
             Vista de calendario para gestionar y visualizar todas las citas médicas.
           </p>
         </div>
-        <Link href="/dashboard/citas/programacion">
+        <Link href="/dashboard/citas/">
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
-            Nueva Cita
+            Ir a las tablas
           </Button>
         </Link>
       </div>
